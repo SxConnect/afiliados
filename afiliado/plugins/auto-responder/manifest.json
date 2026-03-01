@@ -1,0 +1,46 @@
+{
+    "id": "auto-responder",
+    "name": "Resposta Automática",
+    "version": "1.0.0",
+    "description": "Configure respostas automáticas baseadas em palavras-chave",
+    "author": "Sistema Afiliados",
+    "icon": "🤖",
+    "category": "automation",
+    "requiredPlan": "basic",
+    "permissions": [
+        "whatsapp.send",
+        "whatsapp.receive",
+        "storage.write"
+    ],
+    "actions": [
+        {
+            "id": "add-rule",
+            "name": "Adicionar Regra",
+            "params": {
+                "trigger": "string",
+                "response": "string",
+                "matchType": "exact|contains|regex"
+            }
+        },
+        {
+            "id": "list-rules",
+            "name": "Listar Regras"
+        },
+        {
+            "id": "remove-rule",
+            "name": "Remover Regra",
+            "params": {
+                "ruleId": "string"
+            }
+        },
+        {
+            "id": "process-message",
+            "name": "Processar Mensagem",
+            "params": {
+                "instanceId": "string",
+                "jid": "string",
+                "messageText": "string"
+            }
+        }
+    ]
+}

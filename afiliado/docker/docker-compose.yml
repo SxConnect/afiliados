@@ -1,0 +1,86 @@
+version: '3.8'
+
+services:
+  # VPS de Validação
+  vps:
+    build:
+      context: ./vps
+      dockerfile: Dockerfile
+    container_name: afiliado-vps
+    ports:
+      - "4000:4000"
+    environment:
+      - NODE_ENV=production
+      - VPS_PORT=4000
+      - JWT_SECRET=${JWT_SECRET}
+    networks:
+      - afiliado-network
+    restart: unless-stopped
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:4000/health"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+
+  # Core Engine
+  core:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    container_name: afiliado-core
+    ports:
+      - "3001:3001"
+    environment:
+      - NODE_ENV=production
+      - PORT=3001
+      - VPS_URL=http://vps:4000/api
+      - PAPI_URL=${PAPI_URL}
+      - PAPI_API_KEY=${PAPI_API_KEY}
+      - JWT_SECRET=${JWT_SECRET}
+    depends_on:
+      - vps
+    networks:
+      - afiliado-network
+    restart: unless-stopped
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:3001/health"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+
+  # PostgreSQL (opcional para produção)
+  postgres:
+    image: postgres:15-alpine
+    container_name: afiliado-postgres
+    environment:
+      - POSTGRES_DB=afiliado
+      - POSTGRES_USER=afiliado
+      - POSTGRES_PASSWORD=${POSTGRES_PASSWORD}
+    ports:
+      - "5432:5432"
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+    networks:
+      - afiliado-network
+    restart: unless-stopped
+
+  # Redis (opcional para cache)
+  redis:
+    image: redis:7-alpine
+    container_name: afiliado-redis
+    ports:
+      - "6379:6379"
+    volumes:
+      - redis_data:/data
+    networks:
+      - afiliado-network
+    restart: unless-stopped
+    command: redis-server --appendonly yes
+
+networks:
+  afiliado-network:
+    driver: bridge
+
+volumes:
+  postgres_data:
+  redis_data:

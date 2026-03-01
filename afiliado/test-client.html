@@ -1,0 +1,419 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Sistema Afiliados - Cliente de Teste</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            min-height: 100vh;
+            padding: 20px;
+        }
+
+        .container {
+            max-width: 1200px;
+            margin: 0 auto;
+            background: white;
+            border-radius: 20px;
+            padding: 30px;
+            box-shadow: 0 20px 60px rgba(0, 0, 0, 0.3);
+        }
+
+        h1 {
+            color: #667eea;
+            margin-bottom: 10px;
+            font-size: 2.5em;
+        }
+
+        .subtitle {
+            color: #666;
+            margin-bottom: 30px;
+            font-size: 1.1em;
+        }
+
+        .section {
+            margin-bottom: 30px;
+            padding: 20px;
+            background: #f8f9fa;
+            border-radius: 10px;
+            border-left: 4px solid #667eea;
+        }
+
+        .section h2 {
+            color: #333;
+            margin-bottom: 15px;
+            font-size: 1.5em;
+        }
+
+        .form-group {
+            margin-bottom: 15px;
+        }
+
+        label {
+            display: block;
+            margin-bottom: 5px;
+            color: #555;
+            font-weight: 600;
+        }
+
+        input,
+        textarea,
+        select {
+            width: 100%;
+            padding: 12px;
+            border: 2px solid #ddd;
+            border-radius: 8px;
+            font-size: 14px;
+            transition: border-color 0.3s;
+        }
+
+        input:focus,
+        textarea:focus,
+        select:focus {
+            outline: none;
+            border-color: #667eea;
+        }
+
+        button {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+            border: none;
+            padding: 12px 30px;
+            border-radius: 8px;
+            cursor: pointer;
+            font-size: 16px;
+            font-weight: 600;
+            transition: transform 0.2s, box-shadow 0.2s;
+        }
+
+        button:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 5px 15px rgba(102, 126, 234, 0.4);
+        }
+
+        button:active {
+            transform: translateY(0);
+        }
+
+        .response {
+            margin-top: 15px;
+            padding: 15px;
+            background: white;
+            border-radius: 8px;
+            border: 2px solid #ddd;
+            font-family: 'Courier New', monospace;
+            font-size: 13px;
+            max-height: 300px;
+            overflow-y: auto;
+        }
+
+        .success {
+            border-color: #28a745;
+            background: #d4edda;
+        }
+
+        .error {
+            border-color: #dc3545;
+            background: #f8d7da;
+        }
+
+        .info {
+            background: #d1ecf1;
+            border: 1px solid #bee5eb;
+            padding: 15px;
+            border-radius: 8px;
+            margin-bottom: 20px;
+        }
+
+        .token-display {
+            background: #fff3cd;
+            border: 2px solid #ffc107;
+            padding: 15px;
+            border-radius: 8px;
+            margin-top: 15px;
+            word-break: break-all;
+        }
+    </style>
+</head>
+
+<body>
+    <div class="container">
+        <h1>🚀 Sistema Afiliados WhatsApp</h1>
+        <p class="subtitle">Cliente de Teste - API Core Engine</p>
+
+        <div class="info">
+            <strong>ℹ️ Números de teste disponíveis:</strong><br>
+            • 5511999999999 (Plano Pro - Ilimitado)<br>
+            • 5511888888888 (Plano Growth - 500 msgs)<br>
+            • 5511777777777 (Plano Basic - 100 msgs)
+        </div>
+
+        <!-- Seção 1: Login/Validação -->
+        <div class="section">
+            <h2>1️⃣ Validar Licença</h2>
+            <div class="form-group">
+                <label>Número de WhatsApp:</label>
+                <input type="text" id="phoneNumber" placeholder="5511999999999" value="5511999999999">
+            </div>
+            <button onclick="validateLicense()">🔐 Validar Licença</button>
+            <div id="loginResponse" class="response" style="display:none;"></div>
+            <div id="tokenDisplay" class="token-display" style="display:none;">
+                <strong>Token JWT:</strong><br>
+                <span id="tokenValue"></span>
+            </div>
+        </div>
+
+        <!-- Seção 2: Criar Instância WhatsApp -->
+        <div class="section">
+            <h2>2️⃣ Criar Instância WhatsApp</h2>
+            <div class="form-group">
+                <label>ID da Instância:</label>
+                <input type="text" id="instanceId" placeholder="minha-instancia" value="afiliado-test">
+            </div>
+            <button onclick="createInstance()">📱 Criar Instância</button>
+            <button onclick="getQRCode()" style="margin-left: 10px;">📷 Ver QR Code</button>
+            <button onclick="checkStatus()" style="margin-left: 10px;">✅ Ver Status</button>
+            <div id="instanceResponse" class="response" style="display:none;"></div>
+        </div>
+
+        <!-- Seção 3: Enviar Mensagem -->
+        <div class="section">
+            <h2>3️⃣ Enviar Mensagem</h2>
+            <div class="form-group">
+                <label>Número Destinatário:</label>
+                <input type="text" id="destNumber" placeholder="5511888888888@s.whatsapp.net">
+            </div>
+            <div class="form-group">
+                <label>Mensagem:</label>
+                <textarea id="messageText" rows="3"
+                    placeholder="Digite sua mensagem...">Olá! Esta é uma mensagem de teste do Sistema Afiliados.</textarea>
+            </div>
+            <button onclick="sendMessage()">📤 Enviar Mensagem</button>
+            <div id="messageResponse" class="response" style="display:none;"></div>
+        </div>
+
+        <!-- Seção 4: Plugins -->
+        <div class="section">
+            <h2>4️⃣ Plugins</h2>
+            <button onclick="listPlugins()">📦 Listar Plugins</button>
+            <button onclick="testScheduler()" style="margin-left: 10px;">📅 Testar Agendador</button>
+            <button onclick="testAutoResponder()" style="margin-left: 10px;">🤖 Testar Auto-Resposta</button>
+            <div id="pluginsResponse" class="response" style="display:none;"></div>
+        </div>
+
+        <!-- Seção 5: Métricas -->
+        <div class="section">
+            <h2>5️⃣ Métricas e Quota</h2>
+            <button onclick="checkQuota()">📊 Ver Quota</button>
+            <button onclick="getSystemMetrics()" style="margin-left: 10px;">💻 Métricas do Sistema</button>
+            <div id="metricsResponse" class="response" style="display:none;"></div>
+        </div>
+    </div>
+
+    <script>
+        const API_URL = 'http://localhost:3001/api';
+        let authToken = '';
+
+        async function validateLicense() {
+            const phoneNumber = document.getElementById('phoneNumber').value;
+            const responseDiv = document.getElementById('loginResponse');
+            const tokenDiv = document.getElementById('tokenDisplay');
+
+            try {
+                const response = await fetch(`${API_URL}/license/validate`, {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ phoneNumber })
+                });
+
+                const data = await response.json();
+
+                responseDiv.style.display = 'block';
+                responseDiv.className = 'response ' + (data.success ? 'success' : 'error');
+                responseDiv.textContent = JSON.stringify(data, null, 2);
+
+                if (data.success) {
+                    authToken = data.token;
+                    tokenDiv.style.display = 'block';
+                    document.getElementById('tokenValue').textContent = authToken;
+                }
+            } catch (error) {
+                responseDiv.style.display = 'block';
+                responseDiv.className = 'response error';
+                responseDiv.textContent = 'Erro: ' + error.message;
+            }
+        }
+
+        async function createInstance() {
+            const instanceId = document.getElementById('instanceId').value;
+            const responseDiv = document.getElementById('instanceResponse');
+
+            try {
+                const response = await fetch(`${API_URL}/whatsapp/instance/create`, {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                        'Authorization': `Bearer ${authToken}`
+                    },
+                    body: JSON.stringify({ instanceId })
+                });
+
+                const data = await response.json();
+
+                responseDiv.style.display = 'block';
+                responseDiv.className = 'response ' + (data.success ? 'success' : 'error');
+                responseDiv.textContent = JSON.stringify(data, null, 2);
+            } catch (error) {
+                responseDiv.style.display = 'block';
+                responseDiv.className = 'response error';
+                responseDiv.textContent = 'Erro: ' + error.message;
+            }
+        }
+
+        async function getQRCode() {
+            const instanceId = document.getElementById('instanceId').value;
+            const responseDiv = document.getElementById('instanceResponse');
+
+            try {
+                const response = await fetch(`${API_URL}/whatsapp/instance/${instanceId}/qr`, {
+                    headers: { 'Authorization': `Bearer ${authToken}` }
+                });
+
+                const data = await response.json();
+
+                responseDiv.style.display = 'block';
+                if (data.success && data.qrImage) {
+                    responseDiv.className = 'response success';
+                    responseDiv.innerHTML = `<img src="${data.qrImage}" style="max-width: 300px;">`;
+                } else {
+                    responseDiv.className = 'response error';
+                    responseDiv.textContent = JSON.stringify(data, null, 2);
+                }
+            } catch (error) {
+                responseDiv.style.display = 'block';
+                responseDiv.className = 'response error';
+                responseDiv.textContent = 'Erro: ' + error.message;
+            }
+        }
+
+        async function checkStatus() {
+            const instanceId = document.getElementById('instanceId').value;
+            const responseDiv = document.getElementById('instanceResponse');
+
+            try {
+                const response = await fetch(`${API_URL}/whatsapp/instance/${instanceId}/status`, {
+                    headers: { 'Authorization': `Bearer ${authToken}` }
+                });
+
+                const data = await response.json();
+
+                responseDiv.style.display = 'block';
+                responseDiv.className = 'response ' + (data.success ? 'success' : 'error');
+                responseDiv.textContent = JSON.stringify(data, null, 2);
+            } catch (error) {
+                responseDiv.style.display = 'block';
+                responseDiv.className = 'response error';
+                responseDiv.textContent = 'Erro: ' + error.message;
+            }
+        }
+
+        async function sendMessage() {
+            const instanceId = document.getElementById('instanceId').value;
+            const jid = document.getElementById('destNumber').value;
+            const text = document.getElementById('messageText').value;
+            const responseDiv = document.getElementById('messageResponse');
+
+            try {
+                const response = await fetch(`${API_URL}/whatsapp/send/text`, {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                        'Authorization': `Bearer ${authToken}`
+                    },
+                    body: JSON.stringify({ instanceId, jid, text })
+                });
+
+                const data = await response.json();
+
+                responseDiv.style.display = 'block';
+                responseDiv.className = 'response ' + (data.success ? 'success' : 'error');
+                responseDiv.textContent = JSON.stringify(data, null, 2);
+            } catch (error) {
+                responseDiv.style.display = 'block';
+                responseDiv.className = 'response error';
+                responseDiv.textContent = 'Erro: ' + error.message;
+            }
+        }
+
+        async function listPlugins() {
+            const responseDiv = document.getElementById('pluginsResponse');
+
+            try {
+                const response = await fetch(`${API_URL}/plugins`, {
+                    headers: { 'Authorization': `Bearer ${authToken}` }
+                });
+
+                const data = await response.json();
+
+                responseDiv.style.display = 'block';
+                responseDiv.className = 'response ' + (data.success ? 'success' : 'error');
+                responseDiv.textContent = JSON.stringify(data, null, 2);
+            } catch (error) {
+                responseDiv.style.display = 'block';
+                responseDiv.className = 'response error';
+                responseDiv.textContent = 'Erro: ' + error.message;
+            }
+        }
+
+        async function checkQuota() {
+            const responseDiv = document.getElementById('metricsResponse');
+
+            try {
+                const response = await fetch(`${API_URL}/metrics/quota`, {
+                    headers: { 'Authorization': `Bearer ${authToken}` }
+                });
+
+                const data = await response.json();
+
+                responseDiv.style.display = 'block';
+                responseDiv.className = 'response ' + (data.success ? 'success' : 'error');
+                responseDiv.textContent = JSON.stringify(data, null, 2);
+            } catch (error) {
+                responseDiv.style.display = 'block';
+                responseDiv.className = 'response error';
+                responseDiv.textContent = 'Erro: ' + error.message;
+            }
+        }
+
+        async function getSystemMetrics() {
+            const responseDiv = document.getElementById('metricsResponse');
+
+            try {
+                const response = await fetch(`${API_URL}/metrics/system`, {
+                    headers: { 'Authorization': `Bearer ${authToken}` }
+                });
+
+                const data = await response.json();
+
+                responseDiv.style.display = 'block';
+                responseDiv.className = 'response success';
+                responseDiv.textContent = JSON.stringify(data, null, 2);
+            } catch (error) {
+                responseDiv.style.display = 'block';
+                responseDiv.className = 'response error';
+                responseDiv.textContent = 'Erro: ' + error.message;
+            }
+        }
+    </script>
+</body>
+
+</html>
