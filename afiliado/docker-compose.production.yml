@@ -1,0 +1,200 @@
+version: '3.8'
+
+services:
+  # VPS License Server
+  vps:
+    image: ghcr.io/sxconnect/afiliados/vps:latest
+    container_name: afiliados_vps
+    restart: unless-stopped
+    networks:
+      - afiliados_network
+      - portainer_default
+    environment:
+      - NODE_ENV=production
+      - VPS_PORT=4000
+      - JWT_SECRET=${JWT_SECRET:-seu-secret-super-seguro-mude-em-producao}
+      - PRIVATE_KEY=${PRIVATE_KEY}
+      # Database (quando implementar PostgreSQL)
+      - DATABASE_URL=${DATABASE_URL:-postgresql://afiliados:${DB_PASSWORD}@db:5432/afiliados_licenses}
+    labels:
+      - "traefik.enable=true"
+      - "traefik.http.routers.afiliados-vps.rule=Host(`vps.afiliados.sxconnect.com.br`)"
+      - "traefik.http.routers.afiliados-vps.entrypoints=websecure"
+      - "traefik.http.routers.afiliados-vps.tls=true"
+      - "traefik.http.routers.afiliados-vps.tls.certresolver=leresolver"
+      - "traefik.http.services.afiliados-vps.loadbalancer.server.port=4000"
+      - "traefik.docker.network=portainer_default"
+      # Middlewares de segurança
+      - "traefik.http.routers.afiliados-vps.middlewares=afiliados-vps-ratelimit"
+      - "traefik.http.middlewares.afiliados-vps-ratelimit.ratelimit.average=100"
+      - "traefik.http.middlewares.afiliados-vps-ratelimit.ratelimit.period=15m"
+    healthcheck:
+      test: ["CMD", "node", "-e", "require('http').get('http://localhost:4000/api/plans', (r) => {process.exit(r.statusCode === 200 ? 0 : 1)})"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 40s
+    logging:
+      driver: json-file
+      options:
+        max-size: "10m"
+        max-file: "3"
+
+  # Core Engine API
+  core:
+    image: ghcr.io/sxconnect/afiliados/core:latest
+    container_name: afiliados_core
+    restart: unless-stopped
+    networks:
+      - afiliados_network
+      - portainer_default
+    environment:
+      - NODE_ENV=production
+      - PORT=3001
+      # VPS Configuration
+      - VPS_URL=http://vps:4000/api
+      - VPS_PUBLIC_KEY=${VPS_PUBLIC_KEY}
+      # PAPI WhatsApp Configuration
+      - PAPI_URL=${PAPI_URL:-https://papi.sxconnect.com.br}
+      - PAPI_API_KEY=${PAPI_API_KEY}
+      # JWT Secret (deve ser o mesmo da VPS)
+      - JWT_SECRET=${JWT_SECRET:-seu-secret-super-seguro-mude-em-producao}
+      # Quota Configuration
+      - DEFAULT_QUOTA_FREE=10
+      - DEFAULT_QUOTA_BASIC=100
+      - DEFAULT_QUOTA_GROWTH=500
+      - DEFAULT_QUOTA_PRO=999999
+    labels:
+      - "traefik.enable=true"
+      - "traefik.http.routers.afiliados-core.rule=Host(`api.afiliados.sxconnect.com.br`)"
+      - "traefik.http.routers.afiliados-core.entrypoints=websecure"
+      - "traefik.http.routers.afiliados-core.tls=true"
+      - "traefik.http.routers.afiliados-core.tls.certresolver=leresolver"
+      - "traefik.http.services.afiliados-core.loadbalancer.server.port=3001"
+      - "traefik.docker.network=portainer_default"
+      # CORS Headers
+      - "traefik.http.routers.afiliados-core.middlewares=afiliados-core-headers,afiliados-core-ratelimit"
+      - "traefik.http.middlewares.afiliados-core-headers.headers.accesscontrolallowmethods=GET,POST,PUT,DELETE,OPTIONS"
+      - "traefik.http.middlewares.afiliados-core-headers.headers.accesscontrolalloworiginlist=https://app.afiliados.sxconnect.com.br"
+      - "traefik.http.middlewares.afiliados-core-headers.headers.accesscontrolallowcredentials=true"
+      - "traefik.http.middlewares.afiliados-core-ratelimit.ratelimit.average=100"
+      - "traefik.http.middlewares.afiliados-core-ratelimit.ratelimit.period=15m"
+    depends_on:
+      vps:
+        condition: service_healthy
+    healthcheck:
+      test: ["CMD", "node", "-e", "require('http').get('http://localhost:3001/health', (r) => {process.exit(r.statusCode === 200 ? 0 : 1)})"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 40s
+    logging:
+      driver: json-file
+      options:
+        max-size: "10m"
+        max-file: "3"
+
+  # UI Web Application (opcional - se quiser servir via web)
+  ui:
+    image: ghcr.io/sxconnect/afiliados/ui:latest
+    container_name: afiliados_ui
+    restart: unless-stopped
+    networks:
+      - afiliados_network
+      - portainer_default
+    environment:
+      - NODE_ENV=production
+      - VITE_API_URL=https://api.afiliados.sxconnect.com.br
+    labels:
+      - "traefik.enable=true"
+      - "traefik.http.routers.afiliados-ui.rule=Host(`app.afiliados.sxconnect.com.br`)"
+      - "traefik.http.routers.afiliados-ui.entrypoints=websecure"
+      - "traefik.http.routers.afiliados-ui.tls=true"
+      - "traefik.http.routers.afiliados-ui.tls.certresolver=leresolver"
+      - "traefik.http.services.afiliados-ui.loadbalancer.server.port=3000"
+      - "traefik.docker.network=portainer_default"
+      # Security Headers
+      - "traefik.http.routers.afiliados-ui.middlewares=afiliados-ui-headers"
+      - "traefik.http.middlewares.afiliados-ui-headers.headers.stsSeconds=31536000"
+      - "traefik.http.middlewares.afiliados-ui-headers.headers.stsIncludeSubdomains=true"
+      - "traefik.http.middlewares.afiliados-ui-headers.headers.stsPreload=true"
+      - "traefik.http.middlewares.afiliados-ui-headers.headers.forceSTSHeader=true"
+    depends_on:
+      core:
+        condition: service_healthy
+    healthcheck:
+      test: ["CMD", "wget", "--no-verbose", "--tries=1", "--spider", "http://localhost:3000"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 40s
+    logging:
+      driver: json-file
+      options:
+        max-size: "10m"
+        max-file: "3"
+
+  # PostgreSQL Database (opcional - para quando migrar do Map para DB real)
+  db:
+    image: postgres:15-alpine
+    container_name: afiliados_db
+    restart: unless-stopped
+    networks:
+      - afiliados_network
+      - portainer_default
+    environment:
+      - POSTGRES_USER=afiliados
+      - POSTGRES_PASSWORD=${DB_PASSWORD:-mude-esta-senha-em-producao}
+      - POSTGRES_DB=afiliados_licenses
+      - POSTGRES_INITDB_ARGS=--encoding=UTF-8 --lc-collate=C --lc-ctype=C
+    volumes:
+      - afiliados_postgres_data:/var/lib/postgresql/data
+      - ./vps/init.sql:/docker-entrypoint-initdb.d/init.sql:ro
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U afiliados -d afiliados_licenses"]
+      interval: 5s
+      timeout: 5s
+      retries: 5
+    logging:
+      driver: json-file
+      options:
+        max-size: "10m"
+        max-file: "3"
+    labels:
+      - "traefik.enable=false"
+
+  # Redis Cache (opcional - para cache de validações)
+  redis:
+    image: redis:7-alpine
+    container_name: afiliados_redis
+    restart: unless-stopped
+    networks:
+      - afiliados_network
+    command: redis-server --requirepass ${REDIS_PASSWORD:-mude-esta-senha}
+    volumes:
+      - afiliados_redis_data:/data
+    healthcheck:
+      test: ["CMD", "redis-cli", "--raw", "incr", "ping"]
+      interval: 10s
+      timeout: 3s
+      retries: 3
+    logging:
+      driver: json-file
+      options:
+        max-size: "10m"
+        max-file: "3"
+    labels:
+      - "traefik.enable=false"
+
+volumes:
+  afiliados_postgres_data:
+    name: afiliados_postgres_data
+  afiliados_redis_data:
+    name: afiliados_redis_data
+
+networks:
+  afiliados_network:
+    name: afiliados_network
+    driver: bridge
+  portainer_default:
+    external: true
