@@ -1,0 +1,115 @@
+name: CI/CD Pipeline
+
+on:
+  push:
+    branches: [ main, develop ]
+  pull_request:
+    branches: [ main, develop ]
+
+jobs:
+  test-core:
+    name: Test Core (Go)
+    runs-on: ubuntu-latest
+    
+    steps:
+    - uses: actions/checkout@v3
+    
+    - name: Set up Go
+      uses: actions/setup-go@v4
+      with:
+        go-version: '1.21'
+    
+    - name: Install dependencies
+      working-directory: ./core
+      run: go mod download
+    
+    - name: Run tests
+      working-directory: ./core
+      run: go test -v ./...
+    
+    - name: Build
+      working-directory: ./core
+      run: go build -v ./...
+
+  test-ui:
+    name: Test UI (TypeScript)
+    runs-on: ubuntu-latest
+    
+    steps:
+    - uses: actions/checkout@v3
+    
+    - name: Set up Node.js
+      uses: actions/setup-node@v3
+      with:
+        node-version: '18'
+    
+    - name: Install dependencies
+      working-directory: ./ui
+      run: npm ci
+    
+    - name: Run tests
+      working-directory: ./ui
+      run: npm test
+    
+    - name: Build
+      working-directory: ./ui
+      run: npm run build
+
+  test-vps:
+    name: Test VPS (Node.js)
+    runs-on: ubuntu-latest
+    
+    steps:
+    - uses: actions/checkout@v3
+    
+    - name: Set up Node.js
+      uses: actions/setup-node@v3
+      with:
+        node-version: '18'
+    
+    - name: Install dependencies
+      working-directory: ./vps
+      run: npm ci
+    
+    - name: Run tests
+      working-directory: ./vps
+      run: npm test
+
+  build-release:
+    name: Build Release
+    needs: [test-core, test-ui, test-vps]
+    runs-on: windows-latest
+    if: github.ref == 'refs/heads/main'
+    
+    steps:
+    - uses: actions/checkout@v3
+    
+    - name: Set up Go
+      uses: actions/setup-go@v4
+      with:
+        go-version: '1.21'
+    
+    - name: Set up Node.js
+      uses: actions/setup-node@v3
+      with:
+        node-version: '18'
+    
+    - name: Build Core
+      working-directory: ./core
+      run: go build -ldflags="-s -w" -o afiliado-core.exe main.go
+    
+    - name: Install UI dependencies
+      working-directory: ./ui
+      run: npm ci
+    
+    - name: Build UI
+      working-directory: ./ui
+      run: npm run electron:build
+    
+    - name: Upload artifacts
+      uses: actions/upload-artifact@v3
+      with:
+        name: release-build
+        path: |
+          ui/dist/*.exe
+          core/afiliado-core.exe

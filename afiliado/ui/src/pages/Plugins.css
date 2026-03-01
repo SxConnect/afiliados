@@ -1,0 +1,53 @@
+.plugins {
+    padding: 32px;
+    max-width: 1200px;
+    margin: 0 auto;
+}
+
+.plugins h1 {
+    margin-bottom: 32px;
+}
+
+.plugins-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(280px, 1fr));
+    gap: 24px;
+}
+
+.plugin-card {
+    background: #1a1a1a;
+    padding: 24px;
+    border-radius: 12px;
+    border: 1px solid #333;
+    display: flex;
+    flex-direction: column;
+    gap: 12px;
+}
+
+.plugin-card h3 {
+    font-size: 18px;
+}
+
+.plugin-card p {
+    color: #888;
+    font-size: 14px;
+}
+
+.plan-required {
+    display: inline-block;
+    background: #2a2a2a;
+    padding: 4px 8px;
+    border-radius: 4px;
+    font-size: 12px;
+    color: #6366f1;
+}
+
+.plugin-card button {
+    margin-top: auto;
+    width: 100%;
+}
+
+.plugin-card button:disabled {
+    opacity: 0.5;
+    cursor: not-allowed;
+}

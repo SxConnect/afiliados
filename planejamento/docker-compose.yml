@@ -1,0 +1,78 @@
+version: '3.8'
+
+services:
+  app:
+    image: pilot-saas:v1.0.15
+    pull_policy: never
+    container_name: pilot_app
+    restart: unless-stopped
+    networks:
+      - pilot_network
+      - portainer_default
+    environment:
+      - DATABASE_URL=postgresql://pilot:${DB_PASSWORD:-7Bb53LsMjVzY}@db:5432/pilot_db
+      - JWT_SECRET=${JWT_SECRET:-0dbfd146efeb61743fdac7d2d42f0ae5aad6fad4d45987eb568f2937082c061e}
+      - NODE_ENV=production
+      - APP_URL=${APP_URL:-https://pilot.sxconnect.com.br}
+      - NEXT_PUBLIC_APP_URL=${APP_URL:-https://pilot.sxconnect.com.br}
+      # AnythingLLM
+      - ANYTHINGLLM_URL=${ANYTHINGLLM_URL:-https://anything.sxconnect.com.br}
+      - ANYTHINGLLM_API_KEY=${ANYTHINGLLM_API_KEY}
+      - ANYTHINGLLM_WORKSPACE=${ANYTHINGLLM_WORKSPACE:-sxconnect-pilot}
+      # PAPI WhatsApp
+      - PAPI_URL=${PAPI_URL:-https://papi.sxconnect.com.br}
+      - PAPI_INSTANCE=${PAPI_INSTANCE:-instance_1766888820407}
+      - PAPI_TOKEN=${PAPI_TOKEN}
+      # Admin
+      - ADMIN_EMAIL=${ADMIN_EMAIL:-sxconect@gmail.com}
+      - ADMIN_PASSWORD=${ADMIN_PASSWORD:-3zRSHMLRNKe8}
+    labels:
+      - "traefik.enable=true"
+      - "traefik.http.routers.pilot.rule=Host(`pilot.sxconnect.com.br`)"
+      - "traefik.http.routers.pilot.entrypoints=websecure"
+      - "traefik.http.routers.pilot.tls=true"
+      - "traefik.http.routers.pilot.tls.certresolver=leresolver"
+      - "traefik.http.services.pilot.loadbalancer.server.port=3000"
+      - "traefik.docker.network=portainer_default"
+    depends_on:
+      db:
+        condition: service_healthy
+    logging:
+      driver: json-file
+      options:
+        max-size: "10m"
+        max-file: "3"
+
+  db:
+    image: postgres:15-alpine
+    container_name: pilot_db
+    restart: unless-stopped
+    networks:
+      - pilot_network
+      - portainer_default
+    environment:
+      - POSTGRES_USER=pilot
+      - POSTGRES_PASSWORD=${DB_PASSWORD:-7Bb53LsMjVzY}
+      - POSTGRES_DB=pilot_db
+    volumes:
+      - pilot_postgres_data:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U pilot -d pilot_db"]
+      interval: 5s
+      timeout: 5s
+      retries: 5
+    logging:
+      driver: json-file
+      options:
+        max-size: "10m"
+        max-file: "3"
+
+volumes:
+  pilot_postgres_data:
+    name: pilot_postgres_data
+
+networks:
+  pilot_network:
+    external: true
+  portainer_default:
+    external: true

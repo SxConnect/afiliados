@@ -1,0 +1,45 @@
+version: '3.8'
+
+services:
+  license-api:
+    image: ghcr.io/sxconnect/afiliados:latest
+    container_name: afiliado_license_api
+    restart: always
+    networks:
+      - portainer_default
+    environment:
+      - NODE_ENV=production
+      - PORT=3000
+      - JWT_SECRET=${JWT_SECRET}
+      - RSA_PRIVATE_KEY=${RSA_PRIVATE_KEY}
+      - RSA_PUBLIC_KEY=${RSA_PUBLIC_KEY}
+      - LICENSE_SECRET=${LICENSE_SECRET}
+      - DATABASE_URL=${DATABASE_URL}
+    labels:
+      # Traefik
+      - "traefik.enable=true"
+      - "traefik.http.routers.license-api.rule=Host(`api.afiliado.sxconnect.com.br`)"
+      - "traefik.http.routers.license-api.entrypoints=websecure"
+      - "traefik.http.routers.license-api.tls=true"
+      - "traefik.http.routers.license-api.tls.certresolver=leresolver"
+      - "traefik.http.services.license-api.loadbalancer.server.port=3000"
+      - "traefik.docker.network=portainer_default"
+      # Rate Limiting (opcional)
+      - "traefik.http.middlewares.license-api-ratelimit.ratelimit.average=100"
+      - "traefik.http.middlewares.license-api-ratelimit.ratelimit.burst=50"
+      - "traefik.http.routers.license-api.middlewares=license-api-ratelimit"
+    healthcheck:
+      test: ["CMD", "node", "-e", "require('http').get('http://localhost:3000/health', (r) => {process.exit(r.statusCode === 200 ? 0 : 1)})"]
+      interval: 30s
+      timeout: 3s
+      retries: 3
+      start_period: 5s
+    logging:
+      driver: json-file
+      options:
+        max-size: "10m"
+        max-file: "3"
+
+networks:
+  portainer_default:
+    external: true

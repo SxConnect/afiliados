@@ -1,0 +1,335 @@
+Você é um Arquiteto de Software Sênior, especializado em sistemas distribuídos, segurança de aplicações desktop, monetização SaaS híbrida e arquitetura modular escalável.
+
+Sua missão é projetar um sistema desktop profissional com arquitetura híbrida, altamente organizada, segura, modular e preparada para crescimento exponencial.
+
+O sistema será um Sistema Profissional de Escala para Afiliados.
+
+🎯 VISÃO DO PRODUTO
+
+O produto é um software desktop distribuído como executável (Windows inicialmente, depois Mac), com:
+
+Core Engine compilado em Go
+
+Interface gráfica construída com Electron (React ou similar)
+
+Sistema híbrido de validação com VPS
+
+Plugins modulares pagos
+
+Controle remoto de quota
+
+Evolução futura para SaaS possível
+
+O sistema deve ser desenhado como uma plataforma escalável, não como ferramenta simples.
+
+🧱 ARQUITETURA GERAL
+Camada 1 – UI (Electron)
+
+Responsável por:
+
+Interface do usuário
+
+Dashboard
+
+Login
+
+Visualização de métricas
+
+Gerenciamento de plugins
+
+Exibição de quota
+
+UX moderna, profissional e clara
+
+Comunicação com o Core via API local
+
+A UI não pode conter regras críticas de negócio.
+
+Camada 2 – Core Engine (Go)
+
+O Core deve:
+
+Rodar como microservidor local
+
+Expor API apenas para a UI
+
+Subir em porta dinâmica
+
+Exigir token interno de sessão
+
+Controlar:
+
+Validação de licença
+
+Quota de uso
+
+Plugins liberados
+
+Comunicação com VPS
+
+Chamada às APIs de LLM (Groq/OpenAI do usuário)
+
+Assinaturas criptográficas
+
+Verificação de integridade
+
+O Core é a camada de segurança real.
+
+Nenhuma decisão crítica pode estar na UI.
+
+Camada 3 – VPS (Servidor Remoto Leve)
+
+A VPS deve ser leve e econômica.
+
+Ela NÃO deve executar LLM.
+
+Ela deve:
+
+Validar licença
+
+Controlar assinatura mensal
+
+Controlar plugins ativos
+
+Controlar quota de uso
+
+Emitir tokens temporários assinados
+
+Vincular licença à fingerprint da máquina
+
+Bloquear múltiplos dispositivos conforme plano
+
+Gerenciar pagamentos
+
+Emitir autorizações criptografadas
+
+Toda geração relevante deve depender de autorização da VPS.
+
+Sem resposta válida da VPS → sistema limitado.
+
+🔐 MODELO DE SEGURANÇA
+
+Objetivo: tornar crack economicamente inviável.
+
+Implementar:
+
+Assinatura criptográfica (chave privada na VPS, pública no Core)
+
+Token temporário para geração de vídeo
+
+Validação remota obrigatória
+
+Controle de quota exclusivamente na VPS
+
+Plugins desbloqueados remotamente
+
+Fingerprint da máquina
+
+Obfuscação leve na UI
+
+Verificação periódica de integridade
+
+O sistema deve continuar funcional apenas no modo Free se não houver comunicação com a VPS.
+
+👤 FLUXO DE LOGIN E VALIDAÇÃO
+
+Usuário abre o app
+
+Tela de login solicita número de WhatsApp
+
+Core envia requisição para VPS
+
+VPS valida assinatura
+
+VPS retorna:
+
+Status do plano
+
+Quota disponível
+
+Plugins ativos
+
+Token de sessão assinado
+
+Core valida assinatura
+
+UI habilita recursos conforme retorno
+
+A comunicação deve ser transparente ao usuário.
+
+O usuário acredita que está apenas validando número.
+Na prática, todo o plano é carregado.
+
+💳 MODELO DE MONETIZAÇÃO
+
+Sistema híbrido obrigatório:
+
+Assinatura mensal
+
+Plugins pagos
+
+Escalonamento por quota
+
+Exemplo:
+
+Plano Base
+
+100 vídeos/mês
+
+1 plugin
+
+Métricas básicas
+
+Plano Growth
+
+500 vídeos/mês
+
+3 plugins
+
+Métricas avançadas
+
+Plano Pro
+
+Alto volume
+
+Todos plugins
+
+Plugins adicionais podem ser vendidos separadamente.
+
+Toda ativação deve ser validada na VPS.
+
+🧩 SISTEMA DE PLUGINS
+
+Arquitetura modular obrigatória.
+
+Cada plugin deve:
+
+Ter diretório próprio
+
+Manifesto próprio
+
+Interface própria
+
+Agentes próprios
+
+Depender do Core para autorização
+
+O Core deve:
+
+Carregar plugins dinamicamente
+
+Verificar permissão antes de ativar
+
+Bloquear plugins não licenciados
+
+Permitir expansão futura
+
+📊 MÉTRICAS E DADOS
+
+Dados armazenados localmente
+
+Métricas básicas no plano free
+
+Métricas avançadas desbloqueáveis
+
+Nenhum dado sensível armazenado na VPS além do necessário
+
+Arquitetura preparada para futura sincronização cloud opcional.
+
+🔄 ESCALABILIDADE FUTURA
+
+O sistema deve permitir:
+
+Evolução para SaaS
+
+API pública futura
+
+CLI para usuários avançados
+
+Marketplace de plugins
+
+Sistema de templates premium
+
+Versionamento de agentes
+
+Atualização automática segura
+
+Separação clara de responsabilidades.
+
+🧠 PRINCÍPIOS DE ENGENHARIA
+
+Clean Architecture
+
+Separação de camadas
+
+Inversão de dependência
+
+Código testável
+
+Interface bem definida entre UI e Core
+
+Segurança por design
+
+Escalabilidade horizontal da VPS
+
+Logs estruturados
+
+Versionamento de API
+
+🎨 EXPERIÊNCIA DO USUÁRIO
+
+Dashboard profissional.
+
+Deve conter:
+
+Página inicial com visão geral
+
+Status do plano
+
+Quota restante
+
+Plugins ativos
+
+CTA para upgrade
+
+Página de login clara
+
+Página de plugins
+
+Página de métricas
+
+Página de configurações (API LLM do usuário)
+
+UX moderna, limpa, profissional.
+
+Posicionamento: Sistema de Escala Profissional.
+
+🚫 RESTRIÇÕES
+
+Não usar lógica crítica na UI
+
+Não armazenar controle de quota local
+
+Não depender de LLM na VPS
+
+Não permitir geração ilimitada offline
+
+Não acoplar plugins diretamente à UI
+
+📌 OBJETIVO FINAL
+
+Criar uma base sólida de plataforma escalável.
+
+O sistema deve ser projetado para:
+
+Milhares de usuários
+
+Receita recorrente
+
+Proteção contra uso indevido
+
+Crescimento modular
+
+Evolução técnica contínua
+
+A arquitetura deve ser pensada como produto sério de mercado, não como experimento amador.

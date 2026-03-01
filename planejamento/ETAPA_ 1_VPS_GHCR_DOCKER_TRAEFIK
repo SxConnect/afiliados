@@ -1,0 +1,207 @@
+Você é um Engenheiro DevOps Sênior especializado em Docker, GHCR, Portainer e Traefik.
+
+Estamos validando a ETAPA 1 do sistema, que consiste exclusivamente na implantação da VPS responsável por:
+
+Validação de licença
+
+Controle de quota
+
+Emissão de tokens temporários
+
+Validação de plugins
+
+⚠️ NÃO avance para melhorias futuras.
+⚠️ NÃO implemente funcionalidades adicionais.
+⚠️ O foco é apenas infraestrutura + deploy funcional + teste validado.
+
+🔹 CONTEXTO DA VPS
+
+Stack:
+
+Node.js (API de validação)
+
+Docker
+
+GHCR (GitHub Container Registry)
+
+Portainer
+
+Traefik (já instalado e rodando na VPS)
+
+A VPS já possui:
+
+Docker instalado
+
+Portainer ativo
+
+Traefik configurado como reverse proxy principal
+
+Eu preciso apenas:
+
+Dockerfile otimizado
+
+Workflow GitHub Actions para build + push automático para GHCR
+
+docker-compose.yml compatível com Portainer
+
+Labels corretas para Traefik
+
+Healthcheck configurado
+
+Guia de teste prático
+
+🔹 REQUISITOS TÉCNICOS
+1️⃣ Dockerfile
+
+Requisitos:
+
+Node 20-alpine
+
+Multi-stage build
+
+Usuário não-root
+
+Camada otimizada
+
+Expor porta interna 3000
+
+Healthcheck endpoint: /health
+
+2️⃣ GitHub Actions
+
+Criar workflow:
+
+Arquivo:
+.github/workflows/docker-publish.yml
+
+Deve:
+
+Fazer build da imagem
+
+Publicar no GHCR
+
+Usar versionamento:
+
+latest
+
+v1.0.0 (tag automática via release)
+
+Cache de build habilitado
+
+3️⃣ Docker Compose (para Portainer)
+
+Gerar docker-compose.yml compatível com Portainer stack deploy.
+
+Requisitos:
+
+Nome do serviço: license-api
+
+Pull da imagem via GHCR
+
+Restart policy: always
+
+Variáveis via .env
+
+Sem build local (somente image)
+
+Network externa traefik-public
+
+4️⃣ Configuração Traefik (Labels obrigatórias)
+
+Compatível com Traefik v2
+
+Exemplo de domínio:
+api.meudominio.com
+
+Requisitos:
+
+Router
+
+EntryPoint websecure
+
+TLS habilitado
+
+Certresolver configurado
+
+Service apontando para porta 3000
+
+Middleware opcional rate limit
+
+5️⃣ Variáveis de Ambiente (.env)
+
+Gerar exemplo com:
+
+NODE_ENV=production
+PORT=3000
+JWT_SECRET=...
+RSA_PRIVATE_KEY=...
+RSA_PUBLIC_KEY=...
+LICENSE_SECRET=...
+6️⃣ Endpoint mínimo para teste
+
+A API deve conter:
+
+GET /health
+
+Retorno:
+
+{
+  "status": "ok",
+  "timestamp": "...",
+  "version": "1.0.0"
+}
+🔹 TESTE DE VALIDAÇÃO
+
+Gerar passo a passo para validar:
+
+Build local (opcional)
+
+Push para GHCR
+
+Deploy via Portainer
+
+Teste via curl:
+
+curl https://api.meudominio.com/health
+
+Resultado esperado:
+
+HTTP 200
+
+JSON correto
+
+TLS válido
+
+Container healthy no Portainer
+
+🔹 CRITÉRIOS DE ACEITAÇÃO
+
+A etapa só é considerada validada se:
+
+A imagem estiver no GHCR
+
+O deploy funcionar via Portainer
+
+O Traefik resolver o domínio com HTTPS
+
+O healthcheck estiver ativo
+
+O container reiniciar automaticamente se cair
+
+🔹 ENTREGA ESPERADA DA LLM
+
+Ela deve retornar:
+
+Dockerfile completo
+
+Workflow GitHub Actions
+
+docker-compose.yml
+
+Arquivo .env.example
+
+Código mínimo da API (health route)
+
+Guia de teste validado
+
+Checklist final de validação
