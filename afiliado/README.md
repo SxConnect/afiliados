@@ -1,59 +1,43 @@
-# 🚀 Sistema Profissional de Escala para Afiliados
+# Sistema de Afiliados - WhatsApp Automation
 
-Sistema desktop híbrido de alta performance com arquitetura modular, segura e escalável para criação e gestão de conteúdo para afiliados.
+Sistema profissional de automação de WhatsApp para afiliados com validação de licenças em múltiplas camadas.
 
-## ✨ Características Principais
+[![Node.js](https://img.shields.io/badge/Node.js-20+-green.svg)](https://nodejs.org/)
+[![React](https://img.shields.io/badge/React-18-blue.svg)](https://reactjs.org/)
+[![TypeScript](https://img.shields.io/badge/TypeScript-5-blue.svg)](https://www.typescriptlang.org/)
+[![Docker](https://img.shields.io/badge/Docker-Ready-blue.svg)](https://www.docker.com/)
+[![License](https://img.shields.io/badge/License-Proprietary-red.svg)]()
 
-- 🖥️ **Desktop Nativo**: Electron + React para interface moderna
-- ⚡ **Core em Go**: Performance e segurança máximas
-- 🔐 **Segurança Robusta**: Múltiplas camadas de proteção
-- 🧩 **Sistema de Plugins**: Arquitetura modular extensível
-- 💰 **Monetização Híbrida**: Assinaturas + plugins + quota
-- 📊 **Analytics Integrado**: Métricas e insights em tempo real
-- 🌐 **Validação Remota**: Controle centralizado via VPS
+## 🚀 Funcionalidades
 
-## 🏗️ Arquitetura
+- ✅ **Validação em 5 Camadas**: WhatsApp, Banco de Dados, Status, Expiração, Machine Fingerprint
+- ✅ **Sistema de Planos**: Free, Basic, Growth, Pro com controle de quota
+- ✅ **Interface Moderna**: Electron + React + TypeScript + Tailwind CSS
+- ✅ **Segurança Robusta**: JWT, RSA-2048, Machine Fingerprint, Rate Limiting
+- ✅ **Sistema de Plugins**: Arquitetura modular com permissões por plano
+- ✅ **API REST Completa**: 20+ endpoints documentados
+- ✅ **Docker Ready**: Imagens otimizadas para produção
 
-```
-┌─────────────────┐
-│   UI (Electron) │  ← Interface do usuário
-│   React + TS    │
-└────────┬────────┘
-         │ API Local
-┌────────▼────────┐
-│  Core Engine    │  ← Lógica de negócio
-│      Go         │     Segurança
-└────────┬────────┘     Plugins
-         │ HTTPS
-┌────────▼────────┐
-│   VPS Server    │  ← Validação
-│    Node.js      │     Licenças
-└────────┬────────┘     Quota
-         │
-┌────────▼────────┐
-│ Pastorini API   │  ← Validação WhatsApp
-│   WhatsApp      │     Verificação de números
-└─────────────────┘
-```
-
-### Camadas
-
-- **UI Layer**: Electron + React + TypeScript
-- **Core Engine**: Go (microservidor local)
-- **VPS**: Node.js (servidor de validação)
-- **Pastorini API**: Validação de números WhatsApp
-- **Shared**: Tipos e contratos compartilhados
-
-## 📁 Estrutura do Projeto
+## 📦 Arquitetura
 
 ```
-afiliado/
-├── ui/                    # Interface Electron + React
-├── core/                  # Engine Go
-├── vps/                   # Servidor de validação
-├── plugins/               # Plugins modulares
-├── shared/                # Tipos compartilhados
-└── docs/                  # Documentação
+┌─────────────────────────────────────────────────────────┐
+│                    UI (Electron + React)                │
+│  - Login, Dashboard, Plugins, Settings                 │
+│  Porta: 3000                                            │
+└─────────────────────────────────────────────────────────┘
+                        ↓ HTTP
+┌─────────────────────────────────────────────────────────┐
+│                Core Engine (Node.js)                    │
+│  - API REST, Integração PAPI/VPS, Plugins              │
+│  Porta: 3001                                            │
+└─────────────────────────────────────────────────────────┘
+         ↓ HTTP                    ↓ HTTP
+┌──────────────────┐      ┌──────────────────┐
+│   PAPI API       │      │   VPS Server     │
+│  (WhatsApp)      │      │  (Validação)     │
+│  Porta: 3000     │      │  Porta: 4000     │
+└──────────────────┘      └──────────────────┘
 ```
 
 ## 🚀 Início Rápido
@@ -61,8 +45,8 @@ afiliado/
 ### Pré-requisitos
 
 - Node.js 18+
-- Go 1.21+
-- Git
+- npm ou yarn
+- Docker (opcional)
 
 ### Instalação
 
@@ -71,107 +55,238 @@ afiliado/
 git clone https://github.com/SxConnect/afiliados.git
 cd afiliados
 
-# 2. Instalar tudo
-make install
+# 2. Instalar dependências
+npm install
+cd vps && npm install && cd ..
+cd ui && npm install && cd ..
 
-# 3. Gerar chaves de segurança
-cd vps && npm run generate-keys
+# 3. Configurar variáveis de ambiente
+cp .env.example .env
+cp vps/.env.example vps/.env
 
-# 4. Executar
-make run
+# 4. Iniciar servidores
+npm start          # Core Engine (porta 3001)
+npm run vps        # VPS Server (porta 4000)
+npm run ui         # UI (porta 3000)
 ```
 
-Veja [QUICKSTART.md](QUICKSTART.md) para guia detalhado.
-
-## 🚢 Deploy
-
-### Etapa 1: VPS License API
-
-A VPS está pronta para deploy com Docker, GHCR e Traefik:
+### Teste Rápido
 
 ```bash
-# 1. Push para GitHub (CI/CD automático)
-git push origin main
+# Executar testes automatizados
+npm test
 
-# 2. Deploy via Portainer
-# Usar: afiliado/vps/docker-compose.yml
-
-# 3. Verificar
-curl https://api.afiliado.sxconnect.com.br/health
+# Resultado esperado: 8/8 testes passando
 ```
 
-**Documentação completa:**
-- [Guia de Deploy Etapa 1](docs/ETAPA1_DEPLOY_GUIDE.md)
-- [Checklist Etapa 1](ETAPA1_CHECKLIST.md)
-- [VPS README](vps/README.md)
+## 🐳 Docker
 
-**Recursos:**
-- ✅ Dockerfile multi-stage otimizado
-- ✅ GitHub Actions para GHCR
-- ✅ Docker Compose para Portainer
-- ✅ Labels Traefik configuradas
-- ✅ Healthcheck implementado
-- ✅ Script de testes incluído
+### VPS Server
+
+```bash
+# Pull da imagem
+docker pull ghcr.io/sxconnect/afiliados/vps:latest
+
+# Executar
+docker run -d -p 4000:4000 \
+  -e JWT_SECRET=seu-secret \
+  ghcr.io/sxconnect/afiliados/vps:latest
+
+# Ou com docker-compose
+cd vps
+docker-compose up -d
+```
+
+Documentação completa: [vps/DEPLOY.md](./vps/DEPLOY.md)
+
+## 📖 Documentação
+
+### Essencial
+- [API Documentation](./docs/API_DOCUMENTATION.md) - Endpoints e exemplos
+- [Architecture](./docs/ARCHITECTURE.md) - Arquitetura do sistema
+- [VPS Deploy Guide](./vps/DEPLOY.md) - Deploy do servidor VPS
+
+### Guias
+- [Fluxo de Validação](./docs/FLUXO_VALIDACAO.md) - Detalhes técnicos
+- [Início Rápido](./docs/INICIO_RAPIDO.md) - Primeiros passos
+- [Exemplos de Uso](./docs/EXEMPLOS_USO.md) - Casos práticos
+
+### Planejamento
+Documentos de planejamento e desenvolvimento estão em: `../planejamento/`
 
 ## 🔐 Segurança
 
-Sistema com múltiplas camadas de proteção:
+### Validação em 5 Camadas
 
-- ✅ Assinatura criptográfica RSA-2048
-- ✅ Validação remota obrigatória
-- ✅ Controle de quota na VPS
-- ✅ Fingerprint de máquina
-- ✅ Tokens temporários assinados
-- ✅ Plugins remotamente controlados
-- ✅ Verificação de integridade
+1. **WhatsApp (PAPI API)** - Verifica se número está registrado
+2. **Banco de Dados (VPS)** - Verifica licença ativa
+3. **Status** - Verifica se não está desativada
+4. **Expiração** - Verifica se não expirou
+5. **Machine Fingerprint** - Controla dispositivo autorizado
 
-Objetivo: **Tornar crack economicamente inviável**
+### Tecnologias de Segurança
 
-Leia mais em [SECURITY.md](docs/SECURITY.md)
+- JWT Tokens com expiração de 24h
+- Assinatura criptográfica RSA-2048
+- Machine Fingerprint único por dispositivo
+- Rate Limiting (100 req/15min)
+- CORS configurado
+- Helmet para headers de segurança
 
-## 💰 Modelo de Negócio
+## 📊 Planos Disponíveis
 
-### Planos
+| Plano   | Quota      | Plugins | Preço     |
+|---------|------------|---------|-----------|
+| Free    | 10/mês     | 0       | R$ 0      |
+| Basic   | 100/mês    | 1       | R$ 29,90  |
+| Growth  | 500/mês    | 2       | R$ 79,90  |
+| Pro     | Ilimitado  | Todos   | R$ 199,90 |
 
-| Plano | Preço | Vídeos/mês | Plugins | Features |
-|-------|-------|------------|---------|----------|
-| Free | R$ 0 | 10 | 0 | Básico |
-| Base | R$ 97 | 100 | 1 | Métricas |
-| Growth | R$ 297 | 500 | 3 | Analytics |
-| Pro | R$ 997 | 10.000 | Todos | White Label |
+### Licenças de Teste
 
-### Receitas
+```
+Pro:    5511999999999
+Growth: 5511888888888
+Basic:  5511777777777
+```
 
-- 📅 Assinaturas mensais/anuais
-- 🧩 Plugins modulares pagos
-- 📊 Quota adicional (pay-as-you-go)
-- 🎨 Templates premium (futuro)
+## 🔌 API Endpoints
 
-Detalhes em [MONETIZATION.md](docs/MONETIZATION.md)
+### Públicos
+- `GET /health` - Health check
+- `POST /api/license/validate` - Validar licença
 
-## 📚 Documentação
+### Protegidos (requer JWT)
+- `GET /api/license/status` - Status da licença
+- `GET /api/metrics/quota` - Verificar quota
+- `GET /api/plugins` - Listar plugins
+- `POST /api/whatsapp/send/text` - Enviar mensagem
 
-- [Arquitetura](docs/ARCHITECTURE.md) - Design do sistema
-- [Plugins](docs/PLUGINS.md) - Criar plugins
-- [Segurança](docs/SECURITY.md) - Modelo de segurança
-- [Deploy](docs/DEPLOYMENT.md) - Guia de deploy
-- [Monetização](docs/MONETIZATION.md) - Modelo de negócio
-- [Pastorini Integration](docs/PASTORINI_INTEGRATION.md) - Integração WhatsApp
-- [Início Rápido](QUICKSTART.md) - Setup em 5 minutos
+Documentação completa: [docs/API_DOCUMENTATION.md](./docs/API_DOCUMENTATION.md)
+
+## 🧪 Testes
+
+```bash
+# Testes automatizados
+npm test
+
+# Testes manuais via curl
+curl http://localhost:3001/health
+curl -X POST http://localhost:3001/api/license/validate \
+  -H "Content-Type: application/json" \
+  -d '{"phoneNumber":"5511999999999","instanceId":"test"}'
+```
+
+## 🛠️ Desenvolvimento
+
+### Estrutura do Projeto
+
+```
+afiliado/
+├── core/              # Core Engine (Node.js)
+│   ├── routes/        # Rotas da API
+│   ├── services/      # Serviços (PAPI, VPS)
+│   └── middleware/    # Middlewares (auth)
+├── vps/               # VPS Server (validação)
+├── ui/                # Interface (Electron + React)
+│   ├── src/
+│   │   ├── pages/     # Páginas
+│   │   ├── components/# Componentes
+│   │   └── services/  # API client
+├── plugins/           # Sistema de plugins
+├── docker/            # Configuração Docker
+├── docs/              # Documentação
+└── scripts/           # Scripts de automação
+```
+
+### Scripts Disponíveis
+
+```bash
+npm start          # Iniciar Core Engine
+npm run dev        # Modo desenvolvimento
+npm run vps        # Iniciar VPS Server
+npm run ui         # Iniciar UI
+npm test           # Executar testes
+npm run build:ui   # Build da UI
+```
+
+## 🚀 Deploy
+
+### VPS Server (Docker)
+
+```bash
+# Build e push para GHCR
+cd vps
+./build-and-push.sh latest
+
+# Deploy em servidor
+docker pull ghcr.io/sxconnect/afiliados/vps:latest
+docker-compose up -d
+```
+
+Guia completo: [vps/DEPLOY.md](./vps/DEPLOY.md)
+
+### Core Engine
+
+```bash
+# Build
+npm install --production
+
+# Iniciar com PM2
+pm2 start core/core/server.js --name afiliados-core
+
+# Ou com Docker
+docker build -t afiliados-core -f docker/Dockerfile .
+docker run -d -p 3001:3001 afiliados-core
+```
+
+## 📈 Monitoramento
+
+### Health Checks
+
+```bash
+# Core Engine
+curl http://localhost:3001/health
+
+# VPS Server
+curl http://localhost:4000/api/plans
+```
+
+### Logs
+
+```bash
+# Docker
+docker logs -f afiliados-vps
+
+# PM2
+pm2 logs afiliados-core
+```
 
 ## 🤝 Contribuindo
 
-Contribuições são bem-vindas! Veja [CONTRIBUTING.md](CONTRIBUTING.md)
+1. Fork o projeto
+2. Crie uma branch: `git checkout -b feature/nova-funcionalidade`
+3. Commit suas mudanças: `git commit -m 'feat: adiciona nova funcionalidade'`
+4. Push para a branch: `git push origin feature/nova-funcionalidade`
+5. Abra um Pull Request
 
-## 📄 Licença
+## 📝 Licença
 
-MIT License - veja [LICENSE](LICENSE)
+Este projeto é proprietário. Todos os direitos reservados.
+
+## 🔗 Links
+
+- **Repositório**: https://github.com/SxConnect/afiliados
+- **Docker Images**: https://github.com/SxConnect/afiliados/pkgs/container/afiliados%2Fvps
+- **Issues**: https://github.com/SxConnect/afiliados/issues
+
+## 📞 Suporte
+
+Para dúvidas ou problemas:
+1. Consulte a [documentação](./docs/)
+2. Verifique as [issues existentes](https://github.com/SxConnect/afiliados/issues)
+3. Abra uma nova issue se necessário
 
 ---
 
-**Versão**: 1.2.0  
-**Node.js**: 20+  
-**Go**: 1.21+  
-**Docker**: 20.10+
-
-Feito com ❤️ para afiliados profissionais
+**Desenvolvido com ❤️ para automação profissional de WhatsApp**

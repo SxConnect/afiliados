@@ -1,220 +1,275 @@
-# Afiliado License API - VPS
+# VPS License Validation Server
 
-API de validação de licenças para o Sistema Profissional de Escala para Afiliados.
+Servidor de validação de licenças para o Sistema de Afiliados.
 
-## Funcionalidades
+## 🚀 Funcionalidades
 
-- ✅ Validação de licença por WhatsApp
-- ✅ Controle de quota de uso
-- ✅ Validação de plugins
-- ✅ Emissão de tokens JWT
-- ✅ Assinaturas criptográficas HMAC
-- ✅ Rate limiting
-- ✅ Healthcheck
-- ✅ Graceful shutdown
+- ✅ Validação de licenças no banco de dados
+- ✅ Verificação de status (ativa/inativa)
+- ✅ Verificação de expiração
+- ✅ Machine fingerprint (controle de dispositivos)
+- ✅ Sistema de planos (Free, Basic, Growth, Pro)
+- ✅ Controle de quota por plano
+- ✅ Assinatura criptográfica RSA-2048
+- ✅ API REST completa
 
-## Endpoints
+## 📦 Imagem Docker
 
-### GET /health
-Healthcheck do serviço
-
-**Response:**
-```json
-{
-  "status": "ok",
-  "timestamp": "2024-01-01T00:00:00.000Z",
-  "version": "1.0.0",
-  "uptime": 123.45
-}
-```
-
-### POST /api/validate-license
-Valida licença e retorna informações do plano
-
-**Request:**
-```json
-{
-  "whatsapp": "5511999999999",
-  "fingerprint": "abc123...",
-  "signature": "optional-hmac-signature"
-}
-```
-
-**Response:**
-```json
-{
-  "plan": "free",
-  "quota": 10,
-  "quotaUsed": 0,
-  "plugins": [],
-  "token": "jwt-token...",
-  "signature": "hmac-signature"
-}
-```
-
-### POST /api/check-quota
-Verifica quota disponível
-
-**Request:**
-```json
-{
-  "whatsapp": "5511999999999",
-  "token": "jwt-token..."
-}
-```
-
-**Response:**
-```json
-{
-  "quota": 10,
-  "used": 5,
-  "available": 5,
-  "canGenerate": true,
-  "signature": "hmac-signature"
-}
-```
-
-### POST /api/consume-quota
-Consome quota de uso
-
-**Request:**
-```json
-{
-  "whatsapp": "5511999999999",
-  "token": "jwt-token...",
-  "amount": 1
-}
-```
-
-**Response:**
-```json
-{
-  "success": true,
-  "quotaUsed": 6,
-  "quotaRemaining": 4,
-  "signature": "hmac-signature"
-}
-```
-
-### POST /api/validate-plugin
-Valida se plugin está autorizado
-
-**Request:**
-```json
-{
-  "whatsapp": "5511999999999",
-  "token": "jwt-token...",
-  "pluginId": "plugin-advanced-metrics"
-}
-```
-
-**Response:**
-```json
-{
-  "pluginId": "plugin-advanced-metrics",
-  "authorized": false,
-  "signature": "hmac-signature"
-}
-```
-
-## Variáveis de Ambiente
-
-Copie `.env.example` para `.env` e configure:
+A imagem Docker está disponível no GitHub Container Registry:
 
 ```bash
+docker pull ghcr.io/sxconnect/afiliados/vps:latest
+```
+
+## 🔧 Configuração
+
+### Variáveis de Ambiente
+
+Crie um arquivo `.env` com as seguintes variáveis:
+
+```env
+# Porta do servidor
+VPS_PORT=4000
+
+# Ambiente
 NODE_ENV=production
-PORT=3000
-JWT_SECRET=your-jwt-secret
-LICENSE_SECRET=your-license-secret
-PASTORINI_API_KEY=your-api-key
-PASTORINI_INSTANCE_ID=your-instance-id
+
+# JWT Secret (deve ser o mesmo do Core Engine)
+JWT_SECRET=seu-secret-super-seguro-aqui
+
+# Chave Privada RSA para assinatura
+PRIVATE_KEY=-----BEGIN RSA PRIVATE KEY-----
+MIIEpAIBAAKCAQEA...
+-----END RSA PRIVATE KEY-----
 ```
 
-## Desenvolvimento Local
+## 🚀 Deploy com Docker
+
+### Opção 1: Docker Run
 
 ```bash
-# Instalar dependências
-npm install
-
-# Rodar em modo desenvolvimento
-npm run dev
-
-# Rodar em produção
-npm start
-```
-
-## Deploy com Docker
-
-```bash
-# Build da imagem
-docker build -t afiliado-license-api .
-
-# Rodar container
 docker run -d \
-  -p 3000:3000 \
-  --env-file .env \
-  --name license-api \
-  afiliado-license-api
+  --name afiliados-vps \
+  -p 4000:4000 \
+  -e VPS_PORT=4000 \
+  -e NODE_ENV=production \
+  -e JWT_SECRET=seu-secret-aqui \
+  --restart unless-stopped \
+  ghcr.io/sxconnect/afiliados/vps:latest
 ```
 
-## Deploy com Portainer
-
-1. Acesse Portainer
-2. Vá em Stacks > Add Stack
-3. Cole o conteúdo de `docker-compose.yml`
-4. Configure as variáveis de ambiente
-5. Deploy
-
-## Testes
+### Opção 2: Docker Compose
 
 ```bash
-# Testar healthcheck
-curl http://localhost:3000/health
+# 1. Criar arquivo .env
+cp .env.example .env
+nano .env
 
-# Testar validação de licença
-curl -X POST http://localhost:3000/api/validate-license \
+# 2. Iniciar serviço
+docker-compose up -d
+
+# 3. Ver logs
+docker-compose logs -f
+
+# 4. Parar serviço
+docker-compose down
+```
+
+## 🧪 Testar a API
+
+### Health Check
+
+```bash
+curl http://localhost:4000/api/plans
+```
+
+### Validar Licença
+
+```bash
+curl -X POST http://localhost:4000/api/validate \
   -H "Content-Type: application/json" \
-  -d '{"whatsapp":"5511999999999","fingerprint":"test123"}'
+  -d '{
+    "phoneNumber": "5511999999999",
+    "machineId": "abc123...",
+    "timestamp": 1234567890
+  }'
 ```
 
-## Segurança
+### Verificar Quota
 
-- ✅ Rate limiting (100 req/15min por IP)
-- ✅ JWT com expiração de 24h
-- ✅ Assinaturas HMAC em todas as respostas
-- ✅ Validação de fingerprint
-- ✅ Variáveis sensíveis via environment
-- ✅ Logs estruturados
-- ✅ Graceful shutdown
-
-## Arquitetura
-
-```
-┌─────────────┐
-│   Client    │
-│  (Desktop)  │
-└──────┬──────┘
-       │
-       │ HTTPS
-       ▼
-┌─────────────┐
-│   Traefik   │
-│   (Proxy)   │
-└──────┬──────┘
-       │
-       ▼
-┌─────────────┐
-│ License API │
-│  (Node.js)  │
-└─────────────┘
+```bash
+curl http://localhost:4000/api/quota \
+  -H "Authorization: Bearer SEU_TOKEN"
 ```
 
-## Monitoramento
+## 📊 Endpoints Disponíveis
 
-- Healthcheck: `/health`
-- Logs: JSON format com max 10MB/3 arquivos
-- Métricas: Via Traefik dashboard
+### Públicos
 
-## Suporte
+- `GET /api/plans` - Lista planos disponíveis
 
-Para dúvidas ou problemas, consulte a documentação completa em `/docs`.
+### Protegidos
+
+- `POST /api/validate` - Valida licença
+- `GET /api/quota` - Verifica quota disponível
+- `POST /api/quota/consume` - Consome quota
+
+## 🔒 Segurança
+
+### Assinatura Criptográfica
+
+Todas as respostas de validação são assinadas com RSA-2048:
+
+```javascript
+const signature = crypto
+  .createSign('SHA256')
+  .update(JSON.stringify(data))
+  .sign(PRIVATE_KEY, 'base64');
+```
+
+### Machine Fingerprint
+
+Controla o uso da licença por dispositivo:
+
+- Primeiro login: Registra o machine ID
+- Logins subsequentes: Valida contra o ID registrado
+- Bloqueia uso em múltiplos dispositivos
+
+## 📈 Monitoramento
+
+### Health Check
+
+O container possui health check automático:
+
+```bash
+docker ps
+# Verifica a coluna STATUS: healthy/unhealthy
+```
+
+### Logs
+
+```bash
+# Ver logs em tempo real
+docker logs -f afiliados-vps
+
+# Ver últimas 100 linhas
+docker logs --tail 100 afiliados-vps
+```
+
+### Métricas
+
+```bash
+# Uso de recursos
+docker stats afiliados-vps
+```
+
+## 🔄 Atualização
+
+```bash
+# 1. Baixar nova versão
+docker pull ghcr.io/sxconnect/afiliados/vps:latest
+
+# 2. Parar container atual
+docker stop afiliados-vps
+docker rm afiliados-vps
+
+# 3. Iniciar nova versão
+docker-compose up -d
+
+# Ou com docker run
+docker run -d \
+  --name afiliados-vps \
+  -p 4000:4000 \
+  --env-file .env \
+  --restart unless-stopped \
+  ghcr.io/sxconnect/afiliados/vps:latest
+```
+
+## 🗄️ Banco de Dados
+
+Atualmente usa Map em memória. Para produção, migre para PostgreSQL:
+
+### Estrutura da Tabela
+
+```sql
+CREATE TABLE licenses (
+  phone_number VARCHAR(20) PRIMARY KEY,
+  plan VARCHAR(20) NOT NULL,
+  quota_total INTEGER NOT NULL,
+  quota_used INTEGER DEFAULT 0,
+  plugins TEXT[],
+  active BOOLEAN DEFAULT true,
+  machine_id VARCHAR(255),
+  expires_at TIMESTAMP NOT NULL,
+  created_at TIMESTAMP DEFAULT NOW(),
+  last_login TIMESTAMP
+);
+```
+
+## 🔐 Licenças de Teste
+
+```javascript
+// Pro - Ilimitado
+phoneNumber: '5511999999999'
+plan: 'pro'
+quota: 999999
+
+// Growth - 500 mensagens
+phoneNumber: '5511888888888'
+plan: 'growth'
+quota: 500
+
+// Basic - 100 mensagens
+phoneNumber: '5511777777777'
+plan: 'basic'
+quota: 100
+```
+
+## 📚 Documentação Adicional
+
+- [Fluxo de Validação](../docs/FLUXO_VALIDACAO.md)
+- [API Documentation](../docs/API_DOCUMENTATION.md)
+- [Como Testar](../COMO_TESTAR.md)
+
+## 🐛 Troubleshooting
+
+### Container não inicia
+
+```bash
+# Ver logs de erro
+docker logs afiliados-vps
+
+# Verificar variáveis de ambiente
+docker exec afiliados-vps env
+```
+
+### Porta já em uso
+
+```bash
+# Windows
+netstat -ano | findstr :4000
+taskkill /PID <PID> /F
+
+# Linux
+lsof -ti:4000 | xargs kill -9
+```
+
+### Health check falhando
+
+```bash
+# Testar manualmente
+docker exec afiliados-vps node -e "require('http').get('http://localhost:4000/api/plans', (r) => console.log(r.statusCode))"
+```
+
+## 📞 Suporte
+
+Para problemas ou dúvidas:
+1. Verifique os logs: `docker logs afiliados-vps`
+2. Teste a API: `curl http://localhost:4000/api/plans`
+3. Consulte a documentação completa
+
+## 🔗 Links Úteis
+
+- **Repositório**: https://github.com/SxConnect/afiliados
+- **Imagem Docker**: https://github.com/SxConnect/afiliados/pkgs/container/afiliados%2Fvps
+- **Issues**: https://github.com/SxConnect/afiliados/issues

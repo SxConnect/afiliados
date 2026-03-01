@@ -1,41 +1,43 @@
 version: '3.8'
 
 services:
-  license-api:
-    image: ghcr.io/sxconnect/afiliados:latest
-    container_name: afiliado_license_api
-    restart: always
-    networks:
-      - portainer_default
+  vps:
+    image: ghcr.io/sxconnect/afiliados/vps:latest
+    container_name: afiliados-vps
+    restart: unless-stopped
+    
+    ports:
+      - "4000:4000"
+    
     environment:
       - NODE_ENV=production
-      - PORT=3000
+      - VPS_PORT=4000
       - JWT_SECRET=${JWT_SECRET}
-      - LICENSE_SECRET=${LICENSE_SECRET}
-      - RSA_PRIVATE_KEY=${RSA_PRIVATE_KEY}
-      - RSA_PUBLIC_KEY=${RSA_PUBLIC_KEY}
-      - PASTORINI_API_KEY=${PASTORINI_API_KEY}
-      - PASTORINI_INSTANCE_ID=${PASTORINI_INSTANCE_ID}
-    labels:
-      - "traefik.enable=true"
-      - "traefik.http.routers.afiliado-api.rule=Host(`api.afiliado.sxconnect.com.br`)"
-      - "traefik.http.routers.afiliado-api.entrypoints=websecure"
-      - "traefik.http.routers.afiliado-api.tls=true"
-      - "traefik.http.routers.afiliado-api.tls.certresolver=leresolver"
-      - "traefik.http.services.afiliado-api.loadbalancer.server.port=3000"
-      - "traefik.docker.network=portainer_default"
+      - PRIVATE_KEY=${PRIVATE_KEY}
+    
+    env_file:
+      - .env
+    
     healthcheck:
-      test: ["CMD", "wget", "--no-verbose", "--tries=1", "--spider", "http://localhost:3000/health"]
+      test: ["CMD", "node", "-e", "require('http').get('http://localhost:4000/api/plans', (r) => {process.exit(r.statusCode === 200 ? 0 : 1)})"]
       interval: 30s
       timeout: 10s
       retries: 3
       start_period: 40s
+    
+    networks:
+      - vps-network
+    
+    labels:
+      - "com.docker.compose.project=afiliados-vps"
+      - "com.docker.compose.service=vps"
+    
     logging:
-      driver: json-file
+      driver: "json-file"
       options:
         max-size: "10m"
         max-file: "3"
 
 networks:
-  portainer_default:
-    external: true
+  vps-network:
+    driver: bridge

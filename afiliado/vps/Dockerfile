@@ -1,22 +1,27 @@
-# Multi-stage build para otimização
+# Dockerfile para VPS License Server
+# Imagem otimizada para produção
+
+# Stage 1: Build
 FROM node:20-alpine AS builder
+
+LABEL org.opencontainers.image.source="https://github.com/SxConnect/afiliados"
+LABEL org.opencontainers.image.description="VPS License Validation Server"
+LABEL org.opencontainers.image.licenses="Proprietary"
 
 WORKDIR /app
 
-# Copiar apenas package files para cache de dependências
+# Copiar package files
 COPY package*.json ./
 
 # Instalar dependências de produção
 RUN npm ci --only=production && \
     npm cache clean --force
 
-# Stage final
+# Stage 2: Production
 FROM node:20-alpine
 
-# Metadados
-LABEL org.opencontainers.image.source="https://github.com/SxConnect/afiliados"
-LABEL org.opencontainers.image.description="VPS License API - Sistema de Validação de Licenças"
-LABEL org.opencontainers.image.licenses="MIT"
+# Instalar dumb-init para gerenciamento de processos
+RUN apk add --no-cache dumb-init
 
 # Criar usuário não-root
 RUN addgroup -g 1001 -S nodejs && \
@@ -28,21 +33,21 @@ WORKDIR /app
 COPY --from=builder --chown=nodejs:nodejs /app/node_modules ./node_modules
 
 # Copiar código da aplicação
-COPY --chown=nodejs:nodejs . .
-
-# Criar diretório para chaves
-RUN mkdir -p /app/keys && \
-    chown -R nodejs:nodejs /app/keys
+COPY --chown=nodejs:nodejs server.js ./
+COPY --chown=nodejs:nodejs .env* ./
 
 # Mudar para usuário não-root
 USER nodejs
 
 # Expor porta
-EXPOSE 3000
+EXPOSE 4000
 
-# Healthcheck
+# Health check
 HEALTHCHECK --interval=30s --timeout=3s --start-period=5s --retries=3 \
-  CMD node -e "require('http').get('http://localhost:3000/health', (r) => {process.exit(r.statusCode === 200 ? 0 : 1)})"
+    CMD node -e "require('http').get('http://localhost:4000/api/plans', (r) => {process.exit(r.statusCode === 200 ? 0 : 1)})"
 
-# Comando de inicialização
+# Usar dumb-init para gerenciar processos
+ENTRYPOINT ["dumb-init", "--"]
+
+# Comando para iniciar
 CMD ["node", "server.js"]
