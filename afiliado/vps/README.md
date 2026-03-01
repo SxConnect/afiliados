@@ -1,353 +1,220 @@
-# VPS License API
+# Afiliado License API - VPS
 
-API de validação de licenças, controle de quota e gerenciamento de plugins para o sistema Afiliado Pro.
+API de validação de licenças para o Sistema Profissional de Escala para Afiliados.
 
-## 🚀 Quick Start
+## Funcionalidades
 
-### Desenvolvimento Local
+- ✅ Validação de licença por WhatsApp
+- ✅ Controle de quota de uso
+- ✅ Validação de plugins
+- ✅ Emissão de tokens JWT
+- ✅ Assinaturas criptográficas HMAC
+- ✅ Rate limiting
+- ✅ Healthcheck
+- ✅ Graceful shutdown
 
-```bash
-# Instalar dependências
-npm install
+## Endpoints
 
-# Gerar chaves RSA
-npm run generate-keys
-
-# Iniciar servidor
-npm start
-```
-
-### Docker Local
-
-```bash
-# Build da imagem
-docker build -t afiliado-vps:local .
-
-# Executar container
-docker run -p 3000:3000 \
-  -e NODE_ENV=production \
-  -e JWT_SECRET=your-secret \
-  afiliado-vps:local
-```
-
-### Docker Compose
-
-```bash
-# Iniciar stack
-docker-compose up -d
-
-# Ver logs
-docker-compose logs -f
-
-# Parar stack
-docker-compose down
-```
-
-## 📋 Endpoints
-
-### Health Check
-```bash
-GET /health
-```
+### GET /health
+Healthcheck do serviço
 
 **Response:**
 ```json
 {
   "status": "ok",
-  "timestamp": "2024-03-01T12:00:00.000Z",
+  "timestamp": "2024-01-01T00:00:00.000Z",
   "version": "1.0.0",
-  "uptime": 123.45,
-  "memory": {
-    "used": 45,
-    "total": 128
-  }
+  "uptime": 123.45
 }
 ```
 
-### License Status
-```bash
-GET /api/license/status
-```
+### POST /api/validate-license
+Valida licença e retorna informações do plano
 
-**Response:**
+**Request:**
 ```json
 {
-  "status": "active",
-  "version": "1.0.0",
-  "features": ["validation", "quota", "plugins"]
-}
-```
-
-### Validate User
-```bash
-POST /api/v1/validate
-Content-Type: application/json
-
-{
-  "phone": "5511999999999",
-  "fingerprint": "device-fingerprint"
+  "whatsapp": "5511999999999",
+  "fingerprint": "abc123...",
+  "signature": "optional-hmac-signature"
 }
 ```
 
 **Response:**
 ```json
 {
-  "valid": true,
-  "user": {
-    "id": "uuid",
-    "phone": "5511999999999",
-    "plan": "free",
-    "quotaUsed": 0,
-    "quotaLimit": 10,
-    "activePlugins": [],
-    "fingerprint": "device-fingerprint"
-  },
-  "token": {
-    "token": "session-token",
-    "expiresAt": 1234567890,
-    "signature": "base64-signature"
-  },
-  "plugins": []
+  "plan": "free",
+  "quota": 10,
+  "quotaUsed": 0,
+  "plugins": [],
+  "token": "jwt-token...",
+  "signature": "hmac-signature"
 }
 ```
 
-### Check Quota
-```bash
-GET /api/v1/quota/:userId
-Authorization: Bearer {token}
+### POST /api/check-quota
+Verifica quota disponível
+
+**Request:**
+```json
+{
+  "whatsapp": "5511999999999",
+  "token": "jwt-token..."
+}
 ```
 
 **Response:**
 ```json
 {
+  "quota": 10,
   "used": 5,
-  "limit": 10,
-  "remaining": 5
+  "available": 5,
+  "canGenerate": true,
+  "signature": "hmac-signature"
 }
 ```
 
-### Increment Usage
-```bash
-POST /api/v1/usage/:userId
-Authorization: Bearer {token}
+### POST /api/consume-quota
+Consome quota de uso
+
+**Request:**
+```json
+{
+  "whatsapp": "5511999999999",
+  "token": "jwt-token...",
+  "amount": 1
+}
 ```
 
 **Response:**
 ```json
 {
   "success": true,
-  "used": 6,
-  "remaining": 4
+  "quotaUsed": 6,
+  "quotaRemaining": 4,
+  "signature": "hmac-signature"
 }
 ```
 
-## 🔧 Configuração
+### POST /api/validate-plugin
+Valida se plugin está autorizado
 
-### Variáveis de Ambiente
+**Request:**
+```json
+{
+  "whatsapp": "5511999999999",
+  "token": "jwt-token...",
+  "pluginId": "plugin-advanced-metrics"
+}
+```
+
+**Response:**
+```json
+{
+  "pluginId": "plugin-advanced-metrics",
+  "authorized": false,
+  "signature": "hmac-signature"
+}
+```
+
+## Variáveis de Ambiente
+
+Copie `.env.example` para `.env` e configure:
 
 ```bash
-# Obrigatórias
 NODE_ENV=production
 PORT=3000
 JWT_SECRET=your-jwt-secret
-
-# Opcionais
-RSA_PRIVATE_KEY=base64-encoded-key
-RSA_PUBLIC_KEY=base64-encoded-key
 LICENSE_SECRET=your-license-secret
-DATABASE_URL=postgresql://...
+PASTORINI_API_KEY=your-api-key
+PASTORINI_INSTANCE_ID=your-instance-id
 ```
 
-### Gerar Secrets
+## Desenvolvimento Local
 
 ```bash
-# JWT Secret
-node -e "console.log(require('crypto').randomBytes(32).toString('hex'))"
+# Instalar dependências
+npm install
 
-# License Secret
-node -e "console.log(require('crypto').randomBytes(32).toString('hex'))"
+# Rodar em modo desenvolvimento
+npm run dev
+
+# Rodar em produção
+npm start
 ```
 
-### Gerar Chaves RSA
+## Deploy com Docker
 
 ```bash
-npm run generate-keys
-```
+# Build da imagem
+docker build -t afiliado-license-api .
 
-Isso criará:
-- `keys/private.pem` - Chave privada (manter segura!)
-- `keys/public.pem` - Chave pública (distribuir com Core)
-
-## 🐳 Docker
-
-### Build
-
-```bash
-docker build -t afiliado-vps:v1.0.0 .
-```
-
-### Run
-
-```bash
+# Rodar container
 docker run -d \
-  --name afiliado-vps \
   -p 3000:3000 \
-  -e NODE_ENV=production \
-  -e JWT_SECRET=your-secret \
-  --restart unless-stopped \
-  afiliado-vps:v1.0.0
+  --env-file .env \
+  --name license-api \
+  afiliado-license-api
 ```
 
-### Healthcheck
+## Deploy com Portainer
+
+1. Acesse Portainer
+2. Vá em Stacks > Add Stack
+3. Cole o conteúdo de `docker-compose.yml`
+4. Configure as variáveis de ambiente
+5. Deploy
+
+## Testes
 
 ```bash
-docker inspect afiliado-vps | grep -A 10 Health
-```
-
-## 📦 Deploy para GHCR
-
-### Automático (GitHub Actions)
-
-Push para `main` ou crie uma tag:
-
-```bash
-git tag v1.0.0
-git push origin v1.0.0
-```
-
-### Manual
-
-```bash
-# Login no GHCR
-echo $GITHUB_TOKEN | docker login ghcr.io -u USERNAME --password-stdin
-
-# Build
-docker build -t ghcr.io/sxconnect/afiliados:v1.0.0 .
-
-# Push
-docker push ghcr.io/sxconnect/afiliados:v1.0.0
-```
-
-## 🧪 Testes
-
-### Teste Local
-
-```bash
-# Health check
+# Testar healthcheck
 curl http://localhost:3000/health
 
-# License status
-curl http://localhost:3000/api/license/status
-
-# Validate user
-curl -X POST http://localhost:3000/api/v1/validate \
+# Testar validação de licença
+curl -X POST http://localhost:3000/api/validate-license \
   -H "Content-Type: application/json" \
-  -d '{"phone":"5511999999999","fingerprint":"test-123"}'
+  -d '{"whatsapp":"5511999999999","fingerprint":"test123"}'
 ```
 
-### Teste em Produção
+## Segurança
 
-```bash
-# Health check
-curl https://api.afiliado.sxconnect.com.br/health
+- ✅ Rate limiting (100 req/15min por IP)
+- ✅ JWT com expiração de 24h
+- ✅ Assinaturas HMAC em todas as respostas
+- ✅ Validação de fingerprint
+- ✅ Variáveis sensíveis via environment
+- ✅ Logs estruturados
+- ✅ Graceful shutdown
 
-# License status
-curl https://api.afiliado.sxconnect.com.br/api/license/status
+## Arquitetura
+
+```
+┌─────────────┐
+│   Client    │
+│  (Desktop)  │
+└──────┬──────┘
+       │
+       │ HTTPS
+       ▼
+┌─────────────┐
+│   Traefik   │
+│   (Proxy)   │
+└──────┬──────┘
+       │
+       ▼
+┌─────────────┐
+│ License API │
+│  (Node.js)  │
+└─────────────┘
 ```
 
-## 📊 Monitoramento
+## Monitoramento
 
-### Logs
+- Healthcheck: `/health`
+- Logs: JSON format com max 10MB/3 arquivos
+- Métricas: Via Traefik dashboard
 
-```bash
-# Docker
-docker logs afiliado-vps -f
+## Suporte
 
-# Docker Compose
-docker-compose logs -f
-```
-
-### Métricas
-
-```bash
-# Container stats
-docker stats afiliado-vps
-
-# Health status
-curl http://localhost:3000/health | jq '.memory'
-```
-
-## 🔒 Segurança
-
-### Boas Práticas
-
-- ✅ Usar usuário não-root no container
-- ✅ Variáveis sensíveis em `.env`
-- ✅ Chaves RSA fora do repositório
-- ✅ HTTPS obrigatório em produção
-- ✅ Rate limiting configurado
-- ✅ CORS restrito
-
-### Secrets Management
-
-```bash
-# Nunca commitar
-.env
-keys/*.pem
-
-# Usar Docker secrets ou variáveis de ambiente
-docker secret create jwt_secret jwt_secret.txt
-```
-
-## 🐛 Troubleshooting
-
-### Container não inicia
-
-```bash
-# Ver logs
-docker logs afiliado-vps
-
-# Verificar variáveis
-docker inspect afiliado-vps | grep -A 20 Env
-```
-
-### Healthcheck falhando
-
-```bash
-# Testar endpoint
-docker exec afiliado-vps wget -O- http://localhost:3000/health
-
-# Ver logs de erro
-docker logs afiliado-vps --tail 50
-```
-
-### Porta em uso
-
-```bash
-# Verificar porta
-netstat -tulpn | grep 3000
-
-# Usar porta diferente
-docker run -p 3001:3000 ...
-```
-
-## 📚 Documentação
-
-- [Guia de Deploy](../docs/ETAPA1_DEPLOY_GUIDE.md)
-- [Arquitetura](../docs/ARCHITECTURE.md)
-- [API Documentation](../docs/API.md)
-- [Security](../docs/SECURITY.md)
-
-## 🤝 Contribuindo
-
-Veja [CONTRIBUTING.md](../CONTRIBUTING.md)
-
-## 📄 Licença
-
-MIT License - veja [LICENSE](../LICENSE)
-
----
-
-**Versão**: 1.0.0  
-**Node.js**: 20+  
-**Docker**: 20.10+
+Para dúvidas ou problemas, consulte a documentação completa em `/docs`.

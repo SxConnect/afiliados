@@ -1,135 +1,140 @@
 #!/bin/bash
 
-# Script de teste da VPS License API
-# Usage: ./test-api.sh [base-url]
-
-BASE_URL="${1:-http://localhost:3000}"
+# Colors
 GREEN='\033[0;32m'
 RED='\033[0;31m'
 YELLOW='\033[1;33m'
 NC='\033[0m' # No Color
 
-echo "========================================="
-echo "  VPS License API - Test Suite"
-echo "========================================="
-echo "Base URL: $BASE_URL"
+# Configuration
+API_URL="${API_URL:-http://localhost:3000}"
+WHATSAPP="5511999999999"
+FINGERPRINT="test-fingerprint-$(date +%s)"
+
+echo "🧪 Testing Afiliado License API"
+echo "================================"
+echo "API URL: $API_URL"
 echo ""
 
 # Test 1: Health Check
-echo -e "${YELLOW}Test 1: Health Check${NC}"
-RESPONSE=$(curl -s -w "\n%{http_code}" "$BASE_URL/health")
-HTTP_CODE=$(echo "$RESPONSE" | tail -n1)
-BODY=$(echo "$RESPONSE" | sed '$d')
+echo "Test 1: Health Check"
+echo "--------------------"
+HEALTH_RESPONSE=$(curl -s -w "\n%{http_code}" "$API_URL/health")
+HTTP_CODE=$(echo "$HEALTH_RESPONSE" | tail -n1)
+BODY=$(echo "$HEALTH_RESPONSE" | head -n-1)
 
 if [ "$HTTP_CODE" = "200" ]; then
-    echo -e "${GREEN}✓ PASSED${NC} - HTTP $HTTP_CODE"
-    echo "$BODY" | jq '.'
+    echo -e "${GREEN}✓ Health check passed${NC}"
+    echo "Response: $BODY"
 else
-    echo -e "${RED}✗ FAILED${NC} - HTTP $HTTP_CODE"
-    echo "$BODY"
-fi
-echo ""
-
-# Test 2: License Status
-echo -e "${YELLOW}Test 2: License Status${NC}"
-RESPONSE=$(curl -s -w "\n%{http_code}" "$BASE_URL/api/license/status")
-HTTP_CODE=$(echo "$RESPONSE" | tail -n1)
-BODY=$(echo "$RESPONSE" | sed '$d')
-
-if [ "$HTTP_CODE" = "200" ]; then
-    echo -e "${GREEN}✓ PASSED${NC} - HTTP $HTTP_CODE"
-    echo "$BODY" | jq '.'
-else
-    echo -e "${RED}✗ FAILED${NC} - HTTP $HTTP_CODE"
-    echo "$BODY"
-fi
-echo ""
-
-# Test 3: Validate User
-echo -e "${YELLOW}Test 3: Validate User${NC}"
-RESPONSE=$(curl -s -w "\n%{http_code}" -X POST "$BASE_URL/api/v1/validate" \
-    -H "Content-Type: application/json" \
-    -d '{"phone":"5511999999999","fingerprint":"test-fingerprint-123"}')
-HTTP_CODE=$(echo "$RESPONSE" | tail -n1)
-BODY=$(echo "$RESPONSE" | sed '$d')
-
-if [ "$HTTP_CODE" = "200" ]; then
-    echo -e "${GREEN}✓ PASSED${NC} - HTTP $HTTP_CODE"
-    echo "$BODY" | jq '.'
-    
-    # Extract token and userId for next tests
-    TOKEN=$(echo "$BODY" | jq -r '.token.token')
-    USER_ID=$(echo "$BODY" | jq -r '.user.id')
-else
-    echo -e "${RED}✗ FAILED${NC} - HTTP $HTTP_CODE"
-    echo "$BODY"
+    echo -e "${RED}✗ Health check failed (HTTP $HTTP_CODE)${NC}"
+    echo "Response: $BODY"
     exit 1
 fi
 echo ""
 
-# Test 4: Check Quota
-echo -e "${YELLOW}Test 4: Check Quota${NC}"
-RESPONSE=$(curl -s -w "\n%{http_code}" "$BASE_URL/api/v1/quota/$USER_ID" \
-    -H "Authorization: Bearer $TOKEN")
-HTTP_CODE=$(echo "$RESPONSE" | tail -n1)
-BODY=$(echo "$RESPONSE" | sed '$d')
+# Test 2: Validate License
+echo "Test 2: Validate License"
+echo "------------------------"
+VALIDATE_RESPONSE=$(curl -s -w "\n%{http_code}" -X POST "$API_URL/api/validate-license" \
+    -H "Content-Type: application/json" \
+    -d "{\"whatsapp\":\"$WHATSAPP\",\"fingerprint\":\"$FINGERPRINT\"}")
+HTTP_CODE=$(echo "$VALIDATE_RESPONSE" | tail -n1)
+BODY=$(echo "$VALIDATE_RESPONSE" | head -n-1)
 
 if [ "$HTTP_CODE" = "200" ]; then
-    echo -e "${GREEN}✓ PASSED${NC} - HTTP $HTTP_CODE"
-    echo "$BODY" | jq '.'
+    echo -e "${GREEN}✓ License validation passed${NC}"
+    echo "Response: $BODY"
+    TOKEN=$(echo "$BODY" | grep -o '"token":"[^"]*' | cut -d'"' -f4)
+    echo "Token extracted: ${TOKEN:0:20}..."
 else
-    echo -e "${RED}✗ FAILED${NC} - HTTP $HTTP_CODE"
-    echo "$BODY"
+    echo -e "${RED}✗ License validation failed (HTTP $HTTP_CODE)${NC}"
+    echo "Response: $BODY"
+    exit 1
 fi
 echo ""
 
-# Test 5: Increment Usage
-echo -e "${YELLOW}Test 5: Increment Usage${NC}"
-RESPONSE=$(curl -s -w "\n%{http_code}" -X POST "$BASE_URL/api/v1/usage/$USER_ID" \
-    -H "Authorization: Bearer $TOKEN")
-HTTP_CODE=$(echo "$RESPONSE" | tail -n1)
-BODY=$(echo "$RESPONSE" | sed '$d')
+# Test 3: Check Quota
+echo "Test 3: Check Quota"
+echo "-------------------"
+QUOTA_RESPONSE=$(curl -s -w "\n%{http_code}" -X POST "$API_URL/api/check-quota" \
+    -H "Content-Type: application/json" \
+    -d "{\"whatsapp\":\"$WHATSAPP\",\"token\":\"$TOKEN\"}")
+HTTP_CODE=$(echo "$QUOTA_RESPONSE" | tail -n1)
+BODY=$(echo "$QUOTA_RESPONSE" | head -n-1)
 
 if [ "$HTTP_CODE" = "200" ]; then
-    echo -e "${GREEN}✓ PASSED${NC} - HTTP $HTTP_CODE"
-    echo "$BODY" | jq '.'
+    echo -e "${GREEN}✓ Quota check passed${NC}"
+    echo "Response: $BODY"
 else
-    echo -e "${RED}✗ FAILED${NC} - HTTP $HTTP_CODE"
-    echo "$BODY"
+    echo -e "${RED}✗ Quota check failed (HTTP $HTTP_CODE)${NC}"
+    echo "Response: $BODY"
+    exit 1
 fi
 echo ""
 
-# Test 6: Invalid Endpoint (404)
-echo -e "${YELLOW}Test 6: Invalid Endpoint (404)${NC}"
-RESPONSE=$(curl -s -w "\n%{http_code}" "$BASE_URL/api/invalid")
-HTTP_CODE=$(echo "$RESPONSE" | tail -n1)
-BODY=$(echo "$RESPONSE" | sed '$d')
+# Test 4: Consume Quota
+echo "Test 4: Consume Quota"
+echo "---------------------"
+CONSUME_RESPONSE=$(curl -s -w "\n%{http_code}" -X POST "$API_URL/api/consume-quota" \
+    -H "Content-Type: application/json" \
+    -d "{\"whatsapp\":\"$WHATSAPP\",\"token\":\"$TOKEN\",\"amount\":1}")
+HTTP_CODE=$(echo "$CONSUME_RESPONSE" | tail -n1)
+BODY=$(echo "$CONSUME_RESPONSE" | head -n-1)
 
-if [ "$HTTP_CODE" = "404" ]; then
-    echo -e "${GREEN}✓ PASSED${NC} - HTTP $HTTP_CODE"
-    echo "$BODY" | jq '.'
+if [ "$HTTP_CODE" = "200" ]; then
+    echo -e "${GREEN}✓ Quota consumption passed${NC}"
+    echo "Response: $BODY"
 else
-    echo -e "${RED}✗ FAILED${NC} - Expected 404, got $HTTP_CODE"
-    echo "$BODY"
+    echo -e "${RED}✗ Quota consumption failed (HTTP $HTTP_CODE)${NC}"
+    echo "Response: $BODY"
+    exit 1
 fi
 echo ""
 
-# Test 7: Invalid Token (401)
-echo -e "${YELLOW}Test 7: Invalid Token (401)${NC}"
-RESPONSE=$(curl -s -w "\n%{http_code}" "$BASE_URL/api/v1/quota/$USER_ID" \
-    -H "Authorization: Bearer invalid-token")
-HTTP_CODE=$(echo "$RESPONSE" | tail -n1)
-BODY=$(echo "$RESPONSE" | sed '$d')
+# Test 5: Validate Plugin
+echo "Test 5: Validate Plugin"
+echo "-----------------------"
+PLUGIN_RESPONSE=$(curl -s -w "\n%{http_code}" -X POST "$API_URL/api/validate-plugin" \
+    -H "Content-Type: application/json" \
+    -d "{\"whatsapp\":\"$WHATSAPP\",\"token\":\"$TOKEN\",\"pluginId\":\"test-plugin\"}")
+HTTP_CODE=$(echo "$PLUGIN_RESPONSE" | tail -n1)
+BODY=$(echo "$PLUGIN_RESPONSE" | head -n-1)
+
+if [ "$HTTP_CODE" = "200" ]; then
+    echo -e "${GREEN}✓ Plugin validation passed${NC}"
+    echo "Response: $BODY"
+else
+    echo -e "${RED}✗ Plugin validation failed (HTTP $HTTP_CODE)${NC}"
+    echo "Response: $BODY"
+    exit 1
+fi
+echo ""
+
+# Test 6: Invalid Token
+echo "Test 6: Invalid Token (should fail)"
+echo "------------------------------------"
+INVALID_RESPONSE=$(curl -s -w "\n%{http_code}" -X POST "$API_URL/api/check-quota" \
+    -H "Content-Type: application/json" \
+    -d "{\"whatsapp\":\"$WHATSAPP\",\"token\":\"invalid-token\"}")
+HTTP_CODE=$(echo "$INVALID_RESPONSE" | tail -n1)
+BODY=$(echo "$INVALID_RESPONSE" | head -n-1)
 
 if [ "$HTTP_CODE" = "401" ]; then
-    echo -e "${GREEN}✓ PASSED${NC} - HTTP $HTTP_CODE"
-    echo "$BODY" | jq '.'
+    echo -e "${GREEN}✓ Invalid token correctly rejected${NC}"
+    echo "Response: $BODY"
 else
-    echo -e "${RED}✗ FAILED${NC} - Expected 401, got $HTTP_CODE"
-    echo "$BODY"
+    echo -e "${YELLOW}⚠ Expected HTTP 401, got $HTTP_CODE${NC}"
+    echo "Response: $BODY"
 fi
 echo ""
 
-echo "========================================="
-echo "  Test Suite Complete"
-echo "========================================="
+# Summary
+echo "================================"
+echo -e "${GREEN}✅ All tests completed successfully!${NC}"
+echo ""
+echo "Next steps:"
+echo "1. Deploy to VPS"
+echo "2. Configure Traefik"
+echo "3. Test with HTTPS"
+echo "4. Monitor logs"

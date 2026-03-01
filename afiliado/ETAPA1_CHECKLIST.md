@@ -1,327 +1,110 @@
-# ✅ Checklist - Etapa 1: VPS Deploy
+# ✅ Checklist - Etapa 1: Deploy VPS
 
-## 📋 Pré-Deploy
+## Pré-requisitos
 
-### Arquivos Criados
-- [x] `vps/Dockerfile` - Multi-stage build otimizado
-- [x] `vps/.dockerignore` - Arquivos ignorados no build
-- [x] `vps/.env.example` - Exemplo de variáveis
-- [x] `vps/docker-compose.yml` - Stack para Portainer
-- [x] `vps/README.md` - Documentação da VPS
-- [x] `vps/test-api.sh` - Script de testes
-- [x] `.github/workflows/docker-publish.yml` - CI/CD
-- [x] `docs/ETAPA1_DEPLOY_GUIDE.md` - Guia completo
+- [ ] Repositório GitHub criado e público
+- [ ] Docker instalado na VPS
+- [ ] Portainer instalado e rodando
+- [ ] Traefik configurado como reverse proxy
+- [ ] Domínio configurado (ex: api.afiliado.sxconnect.com.br)
 
-### Código Atualizado
-- [x] `vps/server.js` - Health check melhorado
-- [x] `vps/server.js` - Versão da API
-- [x] `vps/server.js` - Graceful shutdown
-- [x] `vps/server.js` - Error handlers
-- [x] `vps/server.js` - Chave privada opcional
+## 1. Preparação Local
 
----
+- [ ] Dockerfile criado e otimizado
+- [ ] package.json configurado
+- [ ] server.js implementado com todos os endpoints
+- [ ] .env.example criado
+- [ ] .dockerignore configurado
+- [ ] docker-compose.yml criado
+- [ ] GitHub Actions workflow criado
 
-## 🐳 Docker
+## 2. Configuração GitHub
 
-### Dockerfile
-- [x] Node 20-alpine como base
-- [x] Multi-stage build
-- [x] Usuário não-root (nodejs:1001)
-- [x] Camadas otimizadas
-- [x] Porta 3000 exposta
-- [x] Healthcheck configurado
-- [x] Labels OCI
+- [ ] Repositório público em https://github.com/SxConnect/afiliados.git
+- [ ] Secrets configurados (se necessário)
+- [ ] Workflow habilitado
 
-### Build Local (Opcional)
-```bash
-cd afiliado/vps
-docker build -t afiliado-vps:test .
-docker run -p 3000:3000 afiliado-vps:test
-curl http://localhost:3000/health
-```
+## 3. Build e Push
 
-- [ ] Build local executado
-- [ ] Container iniciou sem erros
-- [ ] Health check retornou 200
-
----
-
-## 🚀 GitHub Actions
-
-### Workflow
-- [x] Arquivo em `.github/workflows/docker-publish.yml`
-- [x] Trigger em push para main
-- [x] Trigger em tags v*.*.*
-- [x] Login no GHCR
-- [x] Build multi-platform (amd64, arm64)
-- [x] Cache habilitado
-- [x] Tags automáticas (latest, version)
-
-### Execução
-```bash
-git add .
-git commit -m "feat: add VPS Docker setup"
-git push origin main
-```
-
-- [ ] Push para main executado
-- [ ] Workflow iniciou no GitHub Actions
-- [ ] Build completou com sucesso
+- [ ] Commit realizado
+- [ ] Push para GitHub
+- [ ] GitHub Actions executou com sucesso
 - [ ] Imagem publicada no GHCR
+- [ ] Imagem visível em ghcr.io/sxconnect/afiliados:latest
 
-### Verificação GHCR
-- [ ] Acessar: `https://github.com/SxConnect/afiliados/pkgs/container/afiliados`
-- [ ] Imagem `latest` disponível
-- [ ] Tag com versão disponível
-- [ ] Comando de pull funciona
+## 4. Deploy na VPS
 
----
-
-## 📦 Portainer Deploy
-
-### Preparação
-- [ ] VPS com Docker instalado
-- [ ] Portainer rodando
-- [ ] Traefik configurado
-- [ ] Network `portainer_default` existe
-- [ ] DNS apontando para VPS
-
-### Variáveis de Ambiente
-```bash
-NODE_ENV=production
-PORT=3000
-JWT_SECRET=<gerado>
-LICENSE_SECRET=<gerado>
-```
-
-- [ ] Secrets gerados
-- [ ] Variáveis configuradas no Portainer
-
-### Deploy
-- [ ] Stack criada no Portainer
-- [ ] Nome: `afiliado-license-api`
+- [ ] Acesso ao Portainer
+- [ ] Stack criada com nome "afiliado-license-api"
 - [ ] docker-compose.yml colado
-- [ ] Variáveis adicionadas
+- [ ] Variáveis de ambiente configuradas:
+  - [ ] JWT_SECRET
+  - [ ] LICENSE_SECRET
+  - [ ] PASTORINI_API_KEY (opcional)
+  - [ ] PASTORINI_INSTANCE_ID (opcional)
 - [ ] Deploy executado
+- [ ] Container iniciado com sucesso
 
-### Verificação Container
-- [ ] Container `afiliado_license_api` rodando
-- [ ] Status: **healthy**
+## 5. Validação Traefik
+
+- [ ] Labels Traefik aplicadas corretamente
+- [ ] Router criado
+- [ ] Certificado SSL emitido
+- [ ] Domínio resolvendo corretamente
+- [ ] HTTPS funcionando
+
+## 6. Testes
+
+- [ ] Healthcheck respondendo: `curl https://api.afiliado.sxconnect.com.br/health`
+- [ ] HTTP 200 retornado
+- [ ] JSON válido retornado
+- [ ] TLS válido (sem erros de certificado)
+- [ ] Container healthy no Portainer
 - [ ] Logs sem erros
-- [ ] Restart policy: **always**
+
+## 7. Testes de API
+
+- [ ] POST /api/validate-license funcionando
+- [ ] POST /api/check-quota funcionando
+- [ ] POST /api/consume-quota funcionando
+- [ ] POST /api/validate-plugin funcionando
+- [ ] Rate limiting funcionando (100 req/15min)
+- [ ] Tokens JWT sendo gerados
+- [ ] Assinaturas HMAC validando
+
+## 8. Monitoramento
+
+- [ ] Logs estruturados visíveis
+- [ ] Healthcheck passando
+- [ ] Container reiniciando automaticamente se cair
+- [ ] Métricas disponíveis no Traefik
+
+## 9. Documentação
+
+- [ ] README.md atualizado
+- [ ] Guias de deploy criados
+- [ ] Comandos documentados
+- [ ] Troubleshooting documentado
+
+## 10. Critérios de Aceitação Final
+
+- [ ] ✅ Imagem no GHCR
+- [ ] ✅ Deploy via Portainer funcionando
+- [ ] ✅ Traefik resolvendo domínio com HTTPS
+- [ ] ✅ Healthcheck ativo
+- [ ] ✅ Container reinicia automaticamente
+- [ ] ✅ API respondendo corretamente
+- [ ] ✅ Logs sem erros críticos
 
 ---
 
-## 🌐 Traefik
+## Status: ⏳ Em Progresso
 
-### Labels Configuradas
-- [x] `traefik.enable=true`
-- [x] Router rule com domínio
-- [x] EntryPoint: websecure
-- [x] TLS habilitado
-- [x] Certresolver configurado
-- [x] Service port: 3000
-- [x] Network: portainer_default
-- [x] Rate limiting (opcional)
-
-### Verificação
-- [ ] Traefik Dashboard mostra router
-- [ ] Router status: **OK** (verde)
-- [ ] Certificado SSL válido
-- [ ] Domínio resolve corretamente
-
----
-
-## ✅ Testes de Validação
-
-### 1. Health Check
-```bash
-curl https://api.afiliado.sxconnect.com.br/health
-```
-
-**Esperado:**
-- [ ] HTTP 200
-- [ ] JSON com status "ok"
-- [ ] Versão "1.0.0"
-- [ ] Uptime presente
-- [ ] Memory info presente
-
-### 2. License Status
-```bash
-curl https://api.afiliado.sxconnect.com.br/api/license/status
-```
-
-**Esperado:**
-- [ ] HTTP 200
-- [ ] Status "active"
-- [ ] Features array presente
-
-### 3. Validate User
-```bash
-curl -X POST https://api.afiliado.sxconnect.com.br/api/v1/validate \
-  -H "Content-Type: application/json" \
-  -d '{"phone":"5511999999999","fingerprint":"test-123"}'
-```
-
-**Esperado:**
-- [ ] HTTP 200
-- [ ] valid: true
-- [ ] user object presente
-- [ ] token object presente
-- [ ] signature presente
-
-### 4. Check Quota
-```bash
-curl https://api.afiliado.sxconnect.com.br/api/v1/quota/{userId} \
-  -H "Authorization: Bearer {token}"
-```
-
-**Esperado:**
-- [ ] HTTP 200
-- [ ] used, limit, remaining presentes
-
-### 5. SSL/TLS
-```bash
-curl -I https://api.afiliado.sxconnect.com.br/health
-```
-
-**Esperado:**
-- [ ] HTTP/2 200
-- [ ] Certificado válido
-- [ ] Sem warnings SSL
-
-### 6. 404 Handler
-```bash
-curl https://api.afiliado.sxconnect.com.br/invalid
-```
-
-**Esperado:**
-- [ ] HTTP 404
-- [ ] JSON com error "Not found"
-
-### 7. 401 Unauthorized
-```bash
-curl https://api.afiliado.sxconnect.com.br/api/v1/quota/test \
-  -H "Authorization: Bearer invalid"
-```
-
-**Esperado:**
-- [ ] HTTP 401
-- [ ] JSON com error "Sessão inválida"
-
----
-
-## 📊 Monitoramento
-
-### Container Health
-- [ ] Healthcheck passando (30s interval)
-- [ ] Container não reiniciando
-- [ ] Logs sem erros críticos
-
-### Performance
-- [ ] Response time < 100ms
-- [ ] Memory usage < 200MB
-- [ ] CPU usage < 10%
-
-### Logs
-```bash
-docker logs afiliado_license_api --tail 100
-```
-
-**Verificar:**
-- [ ] Sem erros
-- [ ] Startup messages corretos
-- [ ] Requests sendo logados
-
----
-
-## 🔄 Atualização
-
-### Nova Versão
-```bash
-git tag v1.0.1
-git push origin v1.0.1
-```
-
-- [ ] Tag criada
-- [ ] Workflow executou
-- [ ] Nova imagem no GHCR
-
-### Redeploy
-- [ ] Pull and redeploy no Portainer
-- [ ] Container atualizado
-- [ ] Testes passando
-
----
-
-## 📈 Métricas de Sucesso
-
-| Métrica | Alvo | Status |
-|---------|------|--------|
-| Build Time | < 5 min | [ ] |
-| Image Size | < 100MB | [ ] |
-| Startup Time | < 5s | [ ] |
-| Response Time | < 100ms | [ ] |
-| Uptime | 99.9% | [ ] |
-| SSL Grade | A+ | [ ] |
-
----
-
-## 🎯 Critérios de Aceitação
-
-### Obrigatórios
-- [ ] Imagem no GHCR
-- [ ] Deploy via Portainer funcional
-- [ ] Traefik resolvendo com HTTPS
-- [ ] Healthcheck ativo
-- [ ] Restart automático
-- [ ] Todos os endpoints funcionando
-- [ ] Logs sem erros
-- [ ] Documentação completa
-
-### Opcionais
-- [ ] Rate limiting configurado
-- [ ] Métricas coletadas
-- [ ] Alertas configurados
-- [ ] Backup configurado
-
----
-
-## ✅ Validação Final
-
-### Checklist Executivo
-- [ ] **Build**: Imagem criada e publicada
-- [ ] **Deploy**: Container rodando no Portainer
-- [ ] **Network**: Traefik + SSL funcionando
-- [ ] **Health**: Healthcheck passando
-- [ ] **API**: Todos endpoints testados
-- [ ] **Docs**: Guia de deploy completo
-- [ ] **Tests**: Suite de testes executada
-
-### Aprovação
-- [ ] Todos os testes passaram
-- [ ] Performance aceitável
-- [ ] Sem erros críticos
-- [ ] Documentação revisada
-
----
-
-## 🎉 Etapa 1 Completa!
-
-Se todos os itens acima estão marcados, a **Etapa 1** foi concluída com sucesso!
+**Última atualização:** 2024-01-01
 
 **Próximos passos:**
-- Etapa 2: Core Engine (Go)
-- Etapa 3: UI (Electron)
-- Etapa 4: Integração completa
-
----
-
-**Data de Conclusão**: ___/___/______  
-**Responsável**: _________________  
-**Aprovado por**: _________________
-
----
-
-**Versão**: 1.0.0  
-**Última Atualização**: Março 2024
+1. Remover lock do git
+2. Fazer commit e push
+3. Verificar build no GitHub Actions
+4. Deploy no Portainer
+5. Validar funcionamento

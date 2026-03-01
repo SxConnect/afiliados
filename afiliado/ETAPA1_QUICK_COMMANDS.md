@@ -1,309 +1,174 @@
-# Comandos Rápidos - Etapa 1
+# 🚀 Comandos Rápidos - Etapa 1
 
-## 🚀 Deploy Rápido
+## Git
 
-### 1. Push para GitHub (CI/CD Automático)
 ```bash
-cd afiliado
+# Remover lock (se necessário)
+rm .git/index.lock
+
+# Adicionar arquivos
 git add .
-git commit -m "feat: VPS Docker setup for GHCR"
+
+# Commit
+git commit -m "feat: add VPS license API with Docker and GitHub Actions"
+
+# Push
 git push origin main
 ```
 
-### 2. Verificar Build no GitHub
+## Docker Local (Opcional)
+
 ```bash
-# Abrir no navegador
-https://github.com/SxConnect/afiliados/actions
+# Build local
+cd afiliado/vps
+docker build -t afiliado-license-api:local .
+
+# Rodar local
+docker run -d \
+  -p 3000:3000 \
+  --env-file .env \
+  --name license-api-test \
+  afiliado-license-api:local
+
+# Ver logs
+docker logs -f license-api-test
+
+# Parar e remover
+docker stop license-api-test
+docker rm license-api-test
 ```
 
-### 3. Deploy no Portainer
+## Testes Local
+
 ```bash
-# Via interface web:
-# 1. Stacks → Add Stack
-# 2. Nome: afiliado-license-api
-# 3. Colar docker-compose.yml
-# 4. Adicionar variáveis de ambiente
-# 5. Deploy
-```
+# Healthcheck
+curl http://localhost:3000/health
 
----
-
-## 🧪 Testes Rápidos
-
-### Local
-```bash
-# Health check
-curl http://localhost:3000/health | jq
-
-# License status
-curl http://localhost:3000/api/license/status | jq
-
-# Validate user
-curl -X POST http://localhost:3000/api/v1/validate \
+# Validar licença
+curl -X POST http://localhost:3000/api/validate-license \
   -H "Content-Type: application/json" \
-  -d '{"phone":"5511999999999","fingerprint":"test-123"}' | jq
-```
+  -d '{"whatsapp":"5511999999999","fingerprint":"test123"}'
 
-### Produção
-```bash
-# Health check
-curl https://api.afiliado.sxconnect.com.br/health | jq
-
-# License status
-curl https://api.afiliado.sxconnect.com.br/api/license/status | jq
-
-# Validate user
-curl -X POST https://api.afiliado.sxconnect.com.br/api/v1/validate \
-  -H "Content-Type: application/json" \
-  -d '{"phone":"5511999999999","fingerprint":"test-123"}' | jq
-```
-
-### Suite Completa
-```bash
+# Rodar script de testes completo
 cd afiliado/vps
 chmod +x test-api.sh
-./test-api.sh https://api.afiliado.sxconnect.com.br
+./test-api.sh
 ```
 
----
+## Testes Produção (VPS)
 
-## 🐳 Docker Local
-
-### Build
 ```bash
-cd afiliado/vps
-docker build -t afiliado-vps:test .
+# Healthcheck
+curl https://api.afiliado.sxconnect.com.br/health
+
+# Validar licença
+curl -X POST https://api.afiliado.sxconnect.com.br/api/validate-license \
+  -H "Content-Type: application/json" \
+  -d '{"whatsapp":"5511999999999","fingerprint":"prod-test-123"}'
+
+# Rodar script de testes completo
+export API_URL=https://api.afiliado.sxconnect.com.br
+./test-api.sh
 ```
 
-### Run
+## GitHub Actions
+
 ```bash
-docker run -d \
-  --name afiliado-vps-test \
-  -p 3000:3000 \
-  -e NODE_ENV=production \
-  -e JWT_SECRET=test-secret \
-  afiliado-vps:test
+# Ver status do workflow
+# Acesse: https://github.com/SxConnect/afiliados/actions
+
+# Verificar imagem no GHCR
+# Acesse: https://github.com/SxConnect/afiliados/pkgs/container/afiliados
 ```
 
-### Logs
+## Portainer
+
 ```bash
-docker logs afiliado-vps-test -f
+# Acessar Portainer
+# URL: https://portainer.seudominio.com.br
+
+# Deploy via CLI (alternativa)
+docker stack deploy -c docker-compose.yml afiliado-license-api
 ```
 
-### Stop & Remove
+## Logs e Debug
+
 ```bash
-docker stop afiliado-vps-test
-docker rm afiliado-vps-test
-```
+# Ver logs do container (via Docker)
+docker logs -f afiliado_license_api
 
----
+# Ver logs últimas 100 linhas
+docker logs --tail 100 afiliado_license_api
 
-## 📦 GHCR
+# Ver logs com timestamp
+docker logs -t afiliado_license_api
 
-### Pull Imagem
-```bash
-docker pull ghcr.io/sxconnect/afiliados:latest
-```
+# Entrar no container
+docker exec -it afiliado_license_api sh
 
-### Run da Imagem GHCR
-```bash
-docker run -d \
-  --name afiliado-vps \
-  -p 3000:3000 \
-  -e NODE_ENV=production \
-  -e JWT_SECRET=your-secret \
-  ghcr.io/sxconnect/afiliados:latest
-```
+# Ver status do container
+docker ps | grep afiliado
 
----
-
-## 🔧 Troubleshooting
-
-### Ver Logs
-```bash
-# Portainer
-# Containers → afiliado_license_api → Logs
-
-# Docker CLI
-docker logs afiliado_license_api -f --tail 100
-```
-
-### Verificar Health
-```bash
+# Ver healthcheck status
 docker inspect afiliado_license_api | grep -A 10 Health
 ```
 
-### Restart Container
+## Traefik
+
 ```bash
-docker restart afiliado_license_api
+# Ver routers configurados
+# Acesse: https://traefik.seudominio.com.br/dashboard
+
+# Verificar certificado SSL
+openssl s_client -connect api.afiliado.sxconnect.com.br:443 -servername api.afiliado.sxconnect.com.br
+
+# Testar resolução DNS
+nslookup api.afiliado.sxconnect.com.br
 ```
 
-### Verificar Networks
-```bash
-docker inspect afiliado_license_api | grep -A 10 Networks
-```
-
-### Verificar Variáveis
-```bash
-docker inspect afiliado_license_api | grep -A 20 Env
-```
-
----
-
-## 🌐 Traefik
-
-### Verificar Router
-```bash
-# Traefik Dashboard
-https://traefik.seudominio.com/dashboard/
-
-# Ou via API
-curl https://traefik.seudominio.com/api/http/routers | jq
-```
-
-### Testar SSL
-```bash
-openssl s_client -connect api.afiliado.sxconnect.com.br:443
-```
-
-### Verificar Certificado
-```bash
-curl -vI https://api.afiliado.sxconnect.com.br/health 2>&1 | grep -A 10 "SSL certificate"
-```
-
----
-
-## 🔄 Atualização
-
-### Nova Versão
-```bash
-# Criar tag
-git tag v1.0.1
-git push origin v1.0.1
-
-# Aguardar build no GitHub Actions
-# Verificar em: https://github.com/SxConnect/afiliados/actions
-```
-
-### Atualizar no Portainer
-```bash
-# Via interface:
-# Stacks → afiliado-license-api → Pull and redeploy
-
-# Ou via CLI na VPS:
-docker pull ghcr.io/sxconnect/afiliados:latest
-docker-compose up -d
-```
-
----
-
-## 📊 Monitoramento
-
-### Stats do Container
-```bash
-docker stats afiliado_license_api
-```
-
-### Processos
-```bash
-docker top afiliado_license_api
-```
-
-### Uso de Disco
-```bash
-docker system df
-```
-
-### Limpar Imagens Antigas
-```bash
-docker image prune -a
-```
-
----
-
-## 🔐 Secrets
-
-### Gerar JWT Secret
-```bash
-node -e "console.log(require('crypto').randomBytes(32).toString('hex'))"
-```
-
-### Gerar License Secret
-```bash
-node -e "console.log(require('crypto').randomBytes(32).toString('hex'))"
-```
-
-### Gerar Chaves RSA
-```bash
-cd afiliado/vps
-npm run generate-keys
-```
-
----
-
-## 📝 Variáveis de Ambiente
-
-### Mínimas (Produção)
-```bash
-NODE_ENV=production
-PORT=3000
-JWT_SECRET=<gerado>
-LICENSE_SECRET=<gerado>
-```
-
-### Completas (Opcional)
-```bash
-NODE_ENV=production
-PORT=3000
-JWT_SECRET=<gerado>
-RSA_PRIVATE_KEY=<base64>
-RSA_PUBLIC_KEY=<base64>
-LICENSE_SECRET=<gerado>
-DATABASE_URL=postgresql://...
-LOG_LEVEL=info
-CORS_ORIGIN=*
-```
-
----
-
-## 🎯 Checklist Rápido
+## Troubleshooting
 
 ```bash
-# 1. Build & Push
-git push origin main
-
-# 2. Verificar GHCR
-https://github.com/SxConnect/afiliados/pkgs/container/afiliados
-
-# 3. Deploy Portainer
-# (via interface web)
-
-# 4. Testar Health
-curl https://api.afiliado.sxconnect.com.br/health
-
-# 5. Testar API
-curl https://api.afiliado.sxconnect.com.br/api/license/status
-
-# 6. Verificar Logs
+# Container não inicia
 docker logs afiliado_license_api
+docker inspect afiliado_license_api
 
-# 7. Verificar Health Status
-docker inspect afiliado_license_api | grep Health
+# Traefik não resolve
+docker logs traefik
+# Verificar labels no container
+docker inspect afiliado_license_api | grep -A 20 Labels
 
-# ✅ Etapa 1 Completa!
+# Healthcheck falhando
+curl http://localhost:3000/health
+docker exec afiliado_license_api wget -O- http://localhost:3000/health
+
+# Rebuild forçado
+docker pull ghcr.io/sxconnect/afiliados:latest
+docker-compose up -d --force-recreate
 ```
 
----
+## Variáveis de Ambiente
 
-## 📚 Links Úteis
+```bash
+# Gerar JWT_SECRET
+node -e "console.log(require('crypto').randomBytes(64).toString('hex'))"
 
-- **GitHub Repo**: https://github.com/SxConnect/afiliados
-- **GitHub Actions**: https://github.com/SxConnect/afiliados/actions
-- **GHCR Package**: https://github.com/SxConnect/afiliados/pkgs/container/afiliados
-- **Guia Completo**: [ETAPA1_DEPLOY_GUIDE.md](docs/ETAPA1_DEPLOY_GUIDE.md)
-- **Checklist**: [ETAPA1_CHECKLIST.md](ETAPA1_CHECKLIST.md)
+# Gerar LICENSE_SECRET
+node -e "console.log(require('crypto').randomBytes(64).toString('hex'))"
 
----
+# Testar variáveis
+docker exec afiliado_license_api env | grep -E "JWT_SECRET|LICENSE_SECRET"
+```
 
-**Versão**: 1.0.0  
-**Última Atualização**: Março 2024
+## Limpeza
+
+```bash
+# Parar stack
+docker-compose down
+
+# Remover imagens antigas
+docker image prune -a
+
+# Remover volumes não usados
+docker volume prune
+```

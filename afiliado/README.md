@@ -49,34 +49,11 @@ Sistema desktop híbrido de alta performance com arquitetura modular, segura e e
 ```
 afiliado/
 ├── ui/                    # Interface Electron + React
-│   ├── electron/          # Processo principal
-│   ├── src/               # Código React
-│   │   ├── pages/         # Páginas da aplicação
-│   │   └── services/      # Serviços e API
-│   └── package.json
 ├── core/                  # Engine Go
-│   ├── internal/
-│   │   ├── api/           # Servidor HTTP
-│   │   ├── config/        # Configurações
-│   │   ├── plugins/       # Sistema de plugins
-│   │   ├── security/      # Criptografia
-│   │   └── vps/           # Cliente VPS
-│   ├── main.go
-│   └── go.mod
 ├── vps/                   # Servidor de validação
-│   ├── server.js          # API REST
-│   ├── scripts/           # Utilitários
-│   └── package.json
 ├── plugins/               # Plugins modulares
-│   └── example-plugin/
 ├── shared/                # Tipos compartilhados
-│   └── types.ts
 └── docs/                  # Documentação
-    ├── ARCHITECTURE.md
-    ├── PLUGINS.md
-    ├── SECURITY.md
-    ├── DEPLOYMENT.md
-    └── MONETIZATION.md
 ```
 
 ## 🚀 Início Rápido
@@ -91,8 +68,8 @@ afiliado/
 
 ```bash
 # 1. Clonar repositório
-git clone <repo-url>
-cd afiliado
+git clone https://github.com/SxConnect/afiliados.git
+cd afiliados
 
 # 2. Instalar tudo
 make install
@@ -105,6 +82,36 @@ make run
 ```
 
 Veja [QUICKSTART.md](QUICKSTART.md) para guia detalhado.
+
+## 🚢 Deploy
+
+### Etapa 1: VPS License API
+
+A VPS está pronta para deploy com Docker, GHCR e Traefik:
+
+```bash
+# 1. Push para GitHub (CI/CD automático)
+git push origin main
+
+# 2. Deploy via Portainer
+# Usar: afiliado/vps/docker-compose.yml
+
+# 3. Verificar
+curl https://api.afiliado.sxconnect.com.br/health
+```
+
+**Documentação completa:**
+- [Guia de Deploy Etapa 1](docs/ETAPA1_DEPLOY_GUIDE.md)
+- [Checklist Etapa 1](ETAPA1_CHECKLIST.md)
+- [VPS README](vps/README.md)
+
+**Recursos:**
+- ✅ Dockerfile multi-stage otimizado
+- ✅ GitHub Actions para GHCR
+- ✅ Docker Compose para Portainer
+- ✅ Labels Traefik configuradas
+- ✅ Healthcheck implementado
+- ✅ Script de testes incluído
 
 ## 🔐 Segurança
 
@@ -142,118 +149,6 @@ Leia mais em [SECURITY.md](docs/SECURITY.md)
 
 Detalhes em [MONETIZATION.md](docs/MONETIZATION.md)
 
-## 🧩 Sistema de Plugins
-
-Arquitetura modular que permite extensão via plugins:
-
-```javascript
-// plugins/meu-plugin/index.js
-module.exports = {
-  name: 'Meu Plugin',
-  version: '1.0.0',
-  
-  async init(context) {
-    // Inicialização
-  },
-  
-  async execute(params) {
-    // Lógica do plugin
-    return { success: true };
-  }
-};
-```
-
-Veja [PLUGINS.md](docs/PLUGINS.md) para criar seus plugins.
-
-## 📊 Features
-
-### Dashboard
-- Visão geral da conta
-- Quota disponível
-- Plugins ativos
-- Métricas em tempo real
-
-### Plugins
-- Marketplace de plugins
-- Ativação remota
-- Versionamento
-- Permissões granulares
-
-### Settings
-- Configuração de API keys
-- Preferências do usuário
-- Informações da conta
-
-## 🛠️ Desenvolvimento
-
-### Comandos
-
-```bash
-# Instalar dependências
-make install
-
-# Build completo
-make build
-
-# Executar em dev
-make run
-
-# Testes
-make test
-
-# Limpar builds
-make clean
-```
-
-### Estrutura de Dev
-
-```bash
-# Terminal 1 - VPS
-cd vps && npm start
-
-# Terminal 2 - Core
-cd core && go run main.go
-
-# Terminal 3 - UI
-cd ui && npm run electron:dev
-```
-
-## 📦 Deploy
-
-### VPS (Servidor)
-
-```bash
-# Docker
-docker-compose up -d
-
-# Ou manual
-cd vps
-npm install --production
-pm2 start server.js
-```
-
-### Desktop (Executável)
-
-```bash
-cd ui
-npm run electron:build
-```
-
-Veja [DEPLOYMENT.md](docs/DEPLOYMENT.md) para guia completo.
-
-## 🧪 Testes
-
-```bash
-# Core (Go)
-cd core && go test ./...
-
-# UI (TypeScript)
-cd ui && npm test
-
-# VPS (Node.js)
-cd vps && npm test
-```
-
 ## 📚 Documentação
 
 - [Arquitetura](docs/ARCHITECTURE.md) - Design do sistema
@@ -272,68 +167,11 @@ Contribuições são bem-vindas! Veja [CONTRIBUTING.md](CONTRIBUTING.md)
 
 MIT License - veja [LICENSE](LICENSE)
 
-## 🆘 Suporte
-
-- 📖 Documentação: `/docs`
-- 🐛 Issues: GitHub Issues
-- 💬 Community: Discord (em breve)
-
-## 🗺️ Roadmap
-
-### Q1 2024
-- ✅ Arquitetura base
-- ✅ Sistema de plugins
-- ✅ Planos Base e Growth
-- 🔄 Sistema de pagamento
-
-### Q2 2024
-- 🔄 Plano Pro
-- 🔄 5 plugins adicionais
-- 🔄 Analytics avançado
-- 🔄 API pública
-
-### Q3 2024
-- 📅 Marketplace de plugins
-- 📅 Templates premium
-- 📅 White label
-- 📅 Mobile app
-
-### Q4 2024
-- 📅 SaaS version
-- 📅 Enterprise features
-- 📅 Integrações avançadas
-
 ---
 
+**Versão**: 1.2.0  
+**Node.js**: 20+  
+**Go**: 1.21+  
+**Docker**: 20.10+
+
 Feito com ❤️ para afiliados profissionais
-
-
-## 🚢 Deploy
-
-### Etapa 1: VPS License API
-
-A VPS está pronta para deploy com Docker, GHCR e Traefik:
-
-```bash
-# 1. Push para GitHub (CI/CD automático)
-git push origin main
-
-# 2. Deploy via Portainer
-# Usar: afiliado/vps/docker-compose.yml
-
-# 3. Verificar
-curl https://api.afiliado.sxconnect.com.br/health
-```
-
-**Documentação completa:**
-- [Guia de Deploy Etapa 1](docs/ETAPA1_DEPLOY_GUIDE.md)
-- [Checklist Etapa 1](ETAPA1_CHECKLIST.md)
-- [VPS README](vps/README.md)
-
-**Recursos:**
-- ✅ Dockerfile multi-stage otimizado
-- ✅ GitHub Actions para GHCR
-- ✅ Docker Compose para Portainer
-- ✅ Labels Traefik configuradas
-- ✅ Healthcheck implementado
-- ✅ Script de testes incluído

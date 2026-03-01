@@ -1,209 +1,322 @@
 const express = require('express');
 const crypto = require('crypto');
-const fs = require('fs');
-const path = require('path');
+const jwt = require('jsonwebtoken');
+const rateLimit = require('express-rate-limit');
 
 const app = express();
+const PORT = process.env.PORT || 3000;
+
+// Middleware
 app.use(express.json());
+app.set('trust proxy', 1);
 
-// Simulação de banco de dados
-const users = new Map();
-const sessions = new Map();
-
-// Versão da API
-const API_VERSION = '1.0.0';
-
-// Chave privada para assinatura (em produção, usar arquivo seguro)
-let privateKey;
-try {
-    privateKey = fs.readFileSync(path.join(__dirname, 'keys', 'private.pem'), 'utf8');
-} catch (err) {
-    console.warn('AVISO: Chave privada não encontrada. Assinatura desabilitada.');
-}
-
-// Planos disponíveis
-const plans = {
-    free: { videoLimit: 10, pluginLimit: 0, features: ['basic'] },
-    base: { videoLimit: 100, pluginLimit: 1, features: ['basic', 'metrics'] },
-    growth: { videoLimit: 500, pluginLimit: 3, features: ['basic', 'metrics', 'analytics'] },
-    pro: { videoLimit: 10000, pluginLimit: 999, features: ['all'] }
-};
-
-// Middleware de CORS
-app.use((req, res, next) => {
-    res.header('Access-Control-Allow-Origin', '*');
-    res.header('Access-Control-Allow-Methods', 'GET, POST, PUT, DELETE, OPTIONS');
-    res.header('Access-Control-Allow-Headers', 'Content-Type, Authorization');
-    if (req.method === 'OPTIONS') {
-        return res.sendStatus(204);
-    }
-    next();
+// Rate limiting
+const limiter = rateLimit({
+    windowMs: 15 * 60 * 1000, // 15 minutes
+    max: 100, // limit each IP to 100 requests per windowMs
+    message: { error: 'Too many requests, please try again later' }
 });
 
-// Gerar assinatura
+app.use('/api/', limiter);
+
+// Environment variables validation
+const requiredEnvVars = ['JWT_SECRET', 'LICENSE_SECRET'];
+const missingEnvVars = requiredEnvVars.filter(varName => !process.env[varName]);
+
+if (missingEnvVars.length > 0) {
+    console.error(`❌ Missing required environment variables: ${missingEnvVars.join(', ')}`);
+    process.exit(1);
+}
+
+// In-memory storage (replace with database in production)
+const licenses = new Map();
+const quotas = new Map();
+
+// Helper functions
+function generateFingerprint(data) {
+    return crypto.createHash('sha256').update(JSON.stringify(data)).digest('hex');
+}
+
 function signData(data) {
-    if (!privateKey) {
-        return 'signature-disabled';
-    }
-    const sign = crypto.createSign('SHA256');
-    sign.update(data);
-    sign.end();
-    return sign.sign(privateKey, 'base64');
+    const hmac = crypto.createHmac('sha256', process.env.LICENSE_SECRET);
+    hmac.update(JSON.stringify(data));
+    return hmac.digest('hex');
 }
 
-// Validar usuário
-app.post('/api/v1/validate', (req, res) => {
-    const { phone, fingerprint } = req.body;
-
-    if (!phone || !fingerprint) {
-        return res.status(400).json({ error: 'Dados inválidos' });
-    }
-
-    // Buscar ou criar usuário
-    let user = users.get(phone);
-    if (!user) {
-        user = {
-            id: crypto.randomUUID(),
-            phone,
-            plan: 'free',
-            quotaUsed: 0,
-            quotaLimit: plans.free.videoLimit,
-            activePlugins: [],
-            fingerprint,
-            createdAt: new Date()
-        };
-        users.set(phone, user);
-    }
-
-    // Verificar fingerprint
-    if (user.fingerprint !== fingerprint) {
-        return res.status(403).json({ error: 'Dispositivo não autorizado' });
-    }
-
-    // Gerar token de sessão
-    const token = crypto.randomBytes(32).toString('hex');
-    const expiresAt = Date.now() + 24 * 60 * 60 * 1000; // 24 horas
-    const signature = signData(token);
-
-    sessions.set(token, {
-        userId: user.id,
-        expiresAt
-    });
-
-    res.json({
-        valid: true,
-        user,
-        token: {
-            token,
-            expiresAt,
-            signature
-        },
-        plugins: []
-    });
-});
-
-// Verificar quota
-app.get('/api/v1/quota/:userId', (req, res) => {
-    const token = req.headers.authorization?.replace('Bearer ', '');
-    const session = sessions.get(token);
-
-    if (!session || session.expiresAt < Date.now()) {
-        return res.status(401).json({ error: 'Sessão inválida' });
-    }
-
-    const user = Array.from(users.values()).find(u => u.id === req.params.userId);
-    if (!user) {
-        return res.status(404).json({ error: 'Usuário não encontrado' });
-    }
-
-    res.json({
-        used: user.quotaUsed,
-        limit: user.quotaLimit,
-        remaining: user.quotaLimit - user.quotaUsed
-    });
-});
-
-// Incrementar uso
-app.post('/api/v1/usage/:userId', (req, res) => {
-    const token = req.headers.authorization?.replace('Bearer ', '');
-    const session = sessions.get(token);
-
-    if (!session || session.expiresAt < Date.now()) {
-        return res.status(401).json({ error: 'Sessão inválida' });
-    }
-
-    const user = Array.from(users.values()).find(u => u.id === req.params.userId);
-    if (!user) {
-        return res.status(404).json({ error: 'Usuário não encontrado' });
-    }
-
-    if (user.quotaUsed >= user.quotaLimit) {
-        return res.status(403).json({ error: 'Quota excedida' });
-    }
-
-    user.quotaUsed++;
-
-    res.json({
-        success: true,
-        used: user.quotaUsed,
-        remaining: user.quotaLimit - user.quotaUsed
-    });
-});
+function verifySignature(data, signature) {
+    const expectedSignature = signData(data);
+    return crypto.timingSafeEqual(
+        Buffer.from(signature),
+        Buffer.from(expectedSignature)
+    );
+}
 
 // Health check endpoint
 app.get('/health', (req, res) => {
     res.json({
         status: 'ok',
         timestamp: new Date().toISOString(),
-        version: API_VERSION,
-        uptime: process.uptime(),
-        memory: {
-            used: Math.round(process.memoryUsage().heapUsed / 1024 / 1024),
-            total: Math.round(process.memoryUsage().heapTotal / 1024 / 1024)
+        version: '1.0.0',
+        uptime: process.uptime()
+    });
+});
+
+// Validate license
+app.post('/api/validate-license', async (req, res) => {
+    try {
+        const { whatsapp, fingerprint, signature } = req.body;
+
+        if (!whatsapp || !fingerprint) {
+            return res.status(400).json({ error: 'Missing required fields' });
         }
-    });
+
+        // Verify request signature
+        const dataToVerify = { whatsapp, fingerprint };
+        if (signature && !verifySignature(dataToVerify, signature)) {
+            return res.status(401).json({ error: 'Invalid signature' });
+        }
+
+        // Check if license exists
+        const licenseKey = `license:${whatsapp}`;
+        let license = licenses.get(licenseKey);
+
+        if (!license) {
+            // Create free tier license
+            license = {
+                whatsapp,
+                plan: 'free',
+                fingerprint,
+                plugins: [],
+                quota: 10,
+                quotaUsed: 0,
+                createdAt: new Date().toISOString(),
+                expiresAt: null
+            };
+            licenses.set(licenseKey, license);
+        }
+
+        // Validate fingerprint
+        if (license.fingerprint !== fingerprint) {
+            return res.status(403).json({
+                error: 'License already activated on another device',
+                plan: 'free'
+            });
+        }
+
+        // Generate session token
+        const token = jwt.sign(
+            {
+                whatsapp,
+                plan: license.plan,
+                fingerprint,
+                exp: Math.floor(Date.now() / 1000) + (24 * 60 * 60) // 24 hours
+            },
+            process.env.JWT_SECRET
+        );
+
+        // Sign response
+        const responseData = {
+            plan: license.plan,
+            quota: license.quota,
+            quotaUsed: license.quotaUsed,
+            plugins: license.plugins,
+            token
+        };
+        const responseSignature = signData(responseData);
+
+        res.json({
+            ...responseData,
+            signature: responseSignature
+        });
+
+    } catch (error) {
+        console.error('Validation error:', error);
+        res.status(500).json({ error: 'Internal server error' });
+    }
 });
 
-// Status da licença
-app.get('/api/license/status', (req, res) => {
-    res.json({
-        status: 'active',
-        version: API_VERSION,
-        features: ['validation', 'quota', 'plugins']
-    });
+// Check quota
+app.post('/api/check-quota', async (req, res) => {
+    try {
+        const { whatsapp, token } = req.body;
+
+        if (!whatsapp || !token) {
+            return res.status(400).json({ error: 'Missing required fields' });
+        }
+
+        // Verify token
+        try {
+            jwt.verify(token, process.env.JWT_SECRET);
+        } catch (err) {
+            return res.status(401).json({ error: 'Invalid or expired token' });
+        }
+
+        const licenseKey = `license:${whatsapp}`;
+        const license = licenses.get(licenseKey);
+
+        if (!license) {
+            return res.status(404).json({ error: 'License not found' });
+        }
+
+        const available = license.quota - license.quotaUsed;
+        const responseData = {
+            quota: license.quota,
+            used: license.quotaUsed,
+            available,
+            canGenerate: available > 0
+        };
+
+        const signature = signData(responseData);
+
+        res.json({
+            ...responseData,
+            signature
+        });
+
+    } catch (error) {
+        console.error('Quota check error:', error);
+        res.status(500).json({ error: 'Internal server error' });
+    }
 });
 
-// Tratamento de erros
-app.use((err, req, res, next) => {
-    console.error('Error:', err);
-    res.status(500).json({
-        error: 'Internal server error',
-        message: process.env.NODE_ENV === 'development' ? err.message : undefined
-    });
+// Consume quota
+app.post('/api/consume-quota', async (req, res) => {
+    try {
+        const { whatsapp, token, amount = 1 } = req.body;
+
+        if (!whatsapp || !token) {
+            return res.status(400).json({ error: 'Missing required fields' });
+        }
+
+        // Verify token
+        try {
+            jwt.verify(token, process.env.JWT_SECRET);
+        } catch (err) {
+            return res.status(401).json({ error: 'Invalid or expired token' });
+        }
+
+        const licenseKey = `license:${whatsapp}`;
+        const license = licenses.get(licenseKey);
+
+        if (!license) {
+            return res.status(404).json({ error: 'License not found' });
+        }
+
+        const available = license.quota - license.quotaUsed;
+        if (available < amount) {
+            return res.status(403).json({
+                error: 'Insufficient quota',
+                available,
+                requested: amount
+            });
+        }
+
+        // Consume quota
+        license.quotaUsed += amount;
+        licenses.set(licenseKey, license);
+
+        const responseData = {
+            success: true,
+            quotaUsed: license.quotaUsed,
+            quotaRemaining: license.quota - license.quotaUsed
+        };
+
+        const signature = signData(responseData);
+
+        res.json({
+            ...responseData,
+            signature
+        });
+
+    } catch (error) {
+        console.error('Quota consumption error:', error);
+        res.status(500).json({ error: 'Internal server error' });
+    }
+});
+
+// Validate plugin
+app.post('/api/validate-plugin', async (req, res) => {
+    try {
+        const { whatsapp, token, pluginId } = req.body;
+
+        if (!whatsapp || !token || !pluginId) {
+            return res.status(400).json({ error: 'Missing required fields' });
+        }
+
+        // Verify token
+        try {
+            jwt.verify(token, process.env.JWT_SECRET);
+        } catch (err) {
+            return res.status(401).json({ error: 'Invalid or expired token' });
+        }
+
+        const licenseKey = `license:${whatsapp}`;
+        const license = licenses.get(licenseKey);
+
+        if (!license) {
+            return res.status(404).json({ error: 'License not found' });
+        }
+
+        const hasPlugin = license.plugins.includes(pluginId);
+        const responseData = {
+            pluginId,
+            authorized: hasPlugin
+        };
+
+        const signature = signData(responseData);
+
+        res.json({
+            ...responseData,
+            signature
+        });
+
+    } catch (error) {
+        console.error('Plugin validation error:', error);
+        res.status(500).json({ error: 'Internal server error' });
+    }
 });
 
 // 404 handler
 app.use((req, res) => {
-    res.status(404).json({
-        error: 'Not found',
-        path: req.path
-    });
+    res.status(404).json({ error: 'Endpoint not found' });
 });
 
-const PORT = process.env.PORT || 3000;
-app.listen(PORT, () => {
-    console.log(`VPS License API v${API_VERSION} rodando na porta ${PORT}`);
-    console.log(`Environment: ${process.env.NODE_ENV || 'development'}`);
-    console.log(`Health check: http://localhost:${PORT}/health`);
+// Error handler
+app.use((err, req, res, next) => {
+    console.error('Unhandled error:', err);
+    res.status(500).json({ error: 'Internal server error' });
 });
 
 // Graceful shutdown
-process.on('SIGTERM', () => {
-    console.log('SIGTERM received, shutting down gracefully...');
-    process.exit(0);
+let server;
+
+function gracefulShutdown(signal) {
+    console.log(`\n${signal} received, shutting down gracefully...`);
+
+    if (server) {
+        server.close(() => {
+            console.log('✅ HTTP server closed');
+            process.exit(0);
+        });
+
+        // Force shutdown after 10 seconds
+        setTimeout(() => {
+            console.error('⚠️ Forced shutdown after timeout');
+            process.exit(1);
+        }, 10000);
+    } else {
+        process.exit(0);
+    }
+}
+
+process.on('SIGTERM', () => gracefulShutdown('SIGTERM'));
+process.on('SIGINT', () => gracefulShutdown('SIGINT'));
+
+// Start server
+server = app.listen(PORT, '0.0.0.0', () => {
+    console.log(`✅ License API Server running on port ${PORT}`);
+    console.log(`📊 Environment: ${process.env.NODE_ENV || 'development'}`);
+    console.log(`🔒 Security: JWT + HMAC signatures enabled`);
 });
 
-process.on('SIGINT', () => {
-    console.log('SIGINT received, shutting down gracefully...');
-    process.exit(0);
-});
+module.exports = app;
