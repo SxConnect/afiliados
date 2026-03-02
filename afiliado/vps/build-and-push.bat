@@ -1,86 +1,70 @@
 @echo off
-REM Script para build e push da imagem Docker da VPS para GHCR (Windows)
-REM Uso: build-and-push.bat [tag]
+REM Build and Push VPS Docker Image to GHCR
 
 setlocal enabledelayedexpansion
 
-REM Configurações
-set REGISTRY=ghcr.io
-set REPO=sxconnect/afiliados
-set IMAGE_NAME=vps
-set TAG=%1
-if "%TAG%"=="" set TAG=latest
+set IMAGE_NAME=ghcr.io/sxconnect/afiliados-vps
 
-set FULL_IMAGE=%REGISTRY%/%REPO%/%IMAGE_NAME%:%TAG%
-
-echo ========================================
-echo   Build e Push - VPS Docker Image
-echo ========================================
-echo.
-
-REM Build da imagem
-echo [1/4] Construindo imagem Docker...
-docker build ^
-    --tag "%FULL_IMAGE%" ^
-    --tag "%REGISTRY%/%REPO%/%IMAGE_NAME%:main" ^
-    --label "org.opencontainers.image.source=https://github.com/%REPO%" ^
-    --label "org.opencontainers.image.description=VPS License Validation Server" ^
-    --label "org.opencontainers.image.licenses=Proprietary" ^
-    .
-
-if errorlevel 1 (
-    echo Erro ao construir imagem
-    exit /b 1
+REM Ler versão do arquivo VERSION
+if exist ..\VERSION (
+    set /p VERSION=<..\VERSION
+) else (
+    set VERSION=1.0.0
 )
-echo OK - Imagem construida com sucesso
+
+echo ========================================
+echo   VPS Docker Build and Push
+echo ========================================
+echo.
+echo Image: %IMAGE_NAME%
+echo Version: %VERSION%
 echo.
 
-REM Testar a imagem localmente
-echo [2/4] Testando imagem localmente...
-for /f "tokens=*" %%i in ('docker run -d -p 4001:4000 -e NODE_ENV=test "%FULL_IMAGE%"') do set CONTAINER_ID=%%i
-timeout /t 5 /nobreak > nul
-
-curl -f http://localhost:4001/api/plans > nul 2>&1
+echo [1/4] Building Docker image...
+docker build -t %IMAGE_NAME%:latest -t %IMAGE_NAME%:%VERSION% .
 if errorlevel 1 (
-    echo Erro ao testar imagem
-    docker logs %CONTAINER_ID%
-    docker stop %CONTAINER_ID%
-    docker rm %CONTAINER_ID%
+    echo ERROR: Build failed!
+    pause
     exit /b 1
 )
 
-echo OK - Imagem funcionando corretamente
-docker stop %CONTAINER_ID%
-docker rm %CONTAINER_ID%
 echo.
-
-REM Push para GHCR
-echo [3/4] Enviando imagem para GHCR...
-docker push "%FULL_IMAGE%"
-docker push "%REGISTRY%/%REPO%/%IMAGE_NAME%:main"
-
+echo [2/4] Testing image...
+docker run --rm -e JWT_SECRET=test -e LICENSE_SECRET=test %IMAGE_NAME%:latest node -e "console.log('OK')"
 if errorlevel 1 (
-    echo Erro ao enviar imagem
-    echo Execute: echo %%GITHUB_TOKEN%% ^| docker login ghcr.io -u USERNAME --password-stdin
+    echo ERROR: Image test failed!
+    pause
     exit /b 1
 )
-echo OK - Imagem enviada com sucesso
-echo.
 
-REM Informações finais
-echo [4/4] Resumo
-echo ========================================
-echo Imagem: %FULL_IMAGE%
-echo Tags:
-echo   - %REGISTRY%/%REPO%/%IMAGE_NAME%:%TAG%
-echo   - %REGISTRY%/%REPO%/%IMAGE_NAME%:main
 echo.
-echo Para usar a imagem:
-echo   docker pull %FULL_IMAGE%
-echo   docker run -d -p 4000:4000 %FULL_IMAGE%
-echo.
-echo Ou com docker-compose:
-echo   docker-compose up -d
-echo ========================================
+echo [3/4] Logging into GitHub Container Registry...
+echo Please enter your GitHub Personal Access Token
+echo (Create one at: https://github.com/settings/tokens with write:packages permission)
+set /p GITHUB_TOKEN="GitHub Token: "
 
-endlocal
+echo %GITHUB_TOKEN% | docker login ghcr.io -u USERNAME --password-stdin
+if errorlevel 1 (
+    echo ERROR: Login failed!
+    pause
+    exit /b 1
+)
+
+echo.
+echo [4/4] Pushing images to GHCR...
+docker push %IMAGE_NAME%:latest
+docker push %IMAGE_NAME%:%VERSION%
+
+echo.
+echo ========================================
+echo   SUCCESS!
+echo ========================================
+echo.
+echo Images pushed:
+echo   - %IMAGE_NAME%:latest
+echo   - %IMAGE_NAME%:%VERSION%
+echo.
+echo You can now use these images in your docker-compose:
+echo   image: %IMAGE_NAME%:latest
+echo.
+pause

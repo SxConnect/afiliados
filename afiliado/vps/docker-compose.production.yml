@@ -3,7 +3,7 @@ version: '3.8'
 services:
   # VPS License Server
   vps:
-    image: ghcr.io/sxconnect/afiliados/vps:latest
+    image: ghcr.io/sxconnect/afiliados-vps:latest
     container_name: afiliados_vps_server
     restart: unless-stopped
     networks:
@@ -11,9 +11,11 @@ services:
       - portainer_default
     environment:
       - NODE_ENV=production
-      - VPS_PORT=4000
+      - PORT=4000
       # JWT Secret
       - JWT_SECRET=${JWT_SECRET:-seu-secret-super-seguro-mude-em-producao}
+      # License Secret
+      - LICENSE_SECRET=${LICENSE_SECRET:-seu-license-secret-mude-em-producao}
       # RSA Keys
       - PRIVATE_KEY=${PRIVATE_KEY}
       # Database
@@ -53,7 +55,7 @@ services:
       afiliados_vps_redis:
         condition: service_healthy
     healthcheck:
-      test: ["CMD", "node", "-e", "require('http').get('http://localhost:4000/api/plans', (r) => {process.exit(r.statusCode === 200 ? 0 : 1)})"]
+      test: ["CMD", "node", "-e", "require('http').get('http://localhost:4000/health', (r) => {process.exit(r.statusCode === 200 ? 0 : 1)})"]
       interval: 30s
       timeout: 10s
       retries: 3

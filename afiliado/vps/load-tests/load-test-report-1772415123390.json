@@ -1,0 +1,48 @@
+{
+  "timestamp": "2026-03-02T01:32:03.288Z",
+  "nodeVersion": "v18.20.8",
+  "scenarios": {
+    "A-Base": {
+      "total": 1000,
+      "successful": 25,
+      "failed": 975,
+      "errorRate": 97.5,
+      "latency": {
+        "avg": 5.194,
+        "min": 2,
+        "max": 229,
+        "p50": 4,
+        "p95": 6,
+        "p99": 41
+      }
+    },
+    "B-Moderado": {
+      "total": 2000,
+      "successful": 0,
+      "failed": 2000,
+      "errorRate": 100,
+      "latency": {
+        "avg": 3.2335,
+        "min": 2,
+        "max": 13,
+        "p50": 3,
+        "p95": 5,
+        "p99": 7
+      }
+    },
+    "C-Alto": {
+      "total": 3000,
+      "successful": 0,
+      "failed": 3000,
+      "errorRate": 100,
+      "latency": {
+        "avg": 2.9966666666666666,
+        "min": 1,
+        "max": 16,
+        "p50": 3,
+        "p95": 5,
+        "p99": 7
+      }
+    }
+  }
+}

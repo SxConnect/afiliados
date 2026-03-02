@@ -1,0 +1,305 @@
+Você é um Arquiteto de Software Sênior, especialista em SaaS escalável, billing recorrente, criptografia e arquitetura distribuída.
+
+Estamos evoluindo o sistema de validação de licença já implantado (Node.js + PostgreSQL + Docker + Traefik).
+
+Objetivo:
+
+Construir a FASE 2 COMPLETA com visão de 100.000 usuários ativos, incluindo:
+
+Painel Administrativo (CRUD completo)
+
+Sistema de pagamentos recorrentes
+
+Webhooks
+
+Modelo de planos
+
+Controle de assinaturas
+
+Modelo criptográfico ideal
+
+Sistema anti-pirataria avançado
+
+Banco estruturado para alta escala
+
+⚠️ Não entregue soluções simples ou MVP frágil.
+⚠️ Projetar para escala e segurança desde o início.
+
+1️⃣ ARQUITETURA GERAL ESPERADA
+
+Separar claramente:
+
+API Pública (Client → VPS)
+
+Responsável por:
+
+/auth/validate
+
+/license/status
+
+/usage/report
+
+/plugin/check
+
+API Admin (Painel interno)
+
+Responsável por:
+
+CRUD Users
+
+CRUD Plans
+
+CRUD Licenses
+
+CRUD Plugins
+
+Dashboard métricas
+
+Logs de auditoria
+
+Gestão manual de bloqueios
+
+Admin deve ser protegido por:
+
+JWT separado
+
+2FA obrigatório
+
+IP whitelist opcional
+
+Rate limit agressivo
+
+2️⃣ SISTEMA DE PAGAMENTO (DECISÃO ARQUITETURAL)
+
+Implementar integração com:
+
+Para Brasil: Mercado Pago (principal)
+Arquitetura preparada para Stripe futuramente.
+
+Requisitos:
+
+Assinatura recorrente automática
+
+Webhook seguro (assinatura HMAC validada)
+
+Atualização automática de plano
+
+Bloqueio automático em caso de falha de pagamento
+
+Tolerância de atraso configurável (ex: 3 dias)
+
+Fluxo esperado:
+
+Cliente compra plano
+
+Mercado Pago gera assinatura
+
+Webhook notifica VPS
+
+VPS:
+
+Atualiza license.status = active
+
+Atualiza expiration_date
+
+Atualiza plan_id
+
+Nenhuma validação deve depender do cliente.
+
+3️⃣ MODELAGEM DE BANCO (PRONTA PARA 100K USUÁRIOS)
+
+Gerar migrations profissionais com:
+
+users
+plans
+licenses
+machines
+subscriptions
+payments
+usage_logs
+plugin_permissions
+audit_logs
+admin_users
+
+Requisitos técnicos:
+
+UUID como PK
+
+Índices estratégicos
+
+Soft delete onde necessário
+
+Foreign keys consistentes
+
+Constraints fortes
+
+Unique constraints em:
+
+phone
+
+machine fingerprint
+
+subscription external_id
+
+O banco deve estar preparado para:
+
+Leitura pesada
+
+Escrita de usage logs alta
+
+Possível shard futuro
+
+4️⃣ MODELO CRIPTOGRÁFICO IDEAL
+
+Implementar:
+
+RSA-2048 para assinatura de tokens
+
+JWT RS256
+
+Expiração curta (15 min)
+
+Refresh token seguro
+
+Machine binding obrigatório
+
+Fingerprint + hash salgado
+
+Assinatura de payload crítica
+
+Nunca confiar no cliente.
+
+Cliente apenas consome token assinado.
+
+5️⃣ MODELO ANTI-PIRATARIA AVANÇADO
+
+Implementar:
+
+Limite de máquinas por plano
+
+Detecção de fingerprint duplicado
+
+Bloqueio automático por comportamento suspeito
+
+Rate limit por IP + fingerprint
+
+Auditoria completa de login
+
+Revogação de token imediata
+
+Verificação periódica obrigatória
+
+Expiração offline controlada (ex: 24h máximo)
+
+6️⃣ PAINEL ADMIN PROFISSIONAL
+
+Construir painel separado (Next.js recomendado).
+
+Funcionalidades:
+
+Dashboard:
+
+MRR
+
+Usuários ativos
+
+Licenças ativas
+
+Cancelamentos
+
+Receita mensal
+
+CRUD:
+
+Usuários
+
+Planos
+
+Licenças
+
+Plugins
+
+Subscriptions
+
+Filtros avançados
+Paginação eficiente
+Busca indexada
+
+Permissões:
+
+Admin
+
+SuperAdmin
+
+Support
+
+7️⃣ ESCALABILIDADE PARA 100K USUÁRIOS
+
+Projetar já considerando:
+
+Stateless API
+
+Possível Redis para cache
+
+Separação futura:
+
+Auth Service
+
+Billing Service
+
+Usage Service
+
+Log storage preparado para externalização
+
+Uso mínimo de queries pesadas
+
+8️⃣ DEVOPS
+
+Atualizar:
+
+docker-compose
+Adicionar:
+
+PostgreSQL tuning
+
+Redis opcional
+
+Serviço admin separado
+
+Criar:
+
+Migration tool
+
+Seed inicial
+
+Script de bootstrap admin
+
+9️⃣ ENTREGÁVEIS ESPERADOS
+
+Quero que você entregue:
+
+Arquitetura detalhada
+
+Estrutura completa do banco com migrations
+
+Modelos de dados
+
+Fluxo completo de pagamento
+
+Fluxo completo de autenticação
+
+Estratégia anti-pirataria documentada
+
+Estrutura do painel admin
+
+Organização de pastas
+
+Atualização do docker-compose
+
+Checklist de validação da fase 2
+
+IMPORTANTE
+
+Projetar como produto SaaS real.
+Evitar soluções simplistas.
+Priorizar segurança, escalabilidade e organização.

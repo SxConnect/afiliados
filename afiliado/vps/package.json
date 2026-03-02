@@ -1,30 +1,37 @@
 {
     "name": "afiliado-license-api",
-    "version": "1.0.0",
-    "description": "License validation API for Afiliado System",
+    "version": "2.0.0",
+    "description": "License validation API for Afiliado System - Production Ready for 10K users",
     "main": "server.js",
     "scripts": {
         "start": "node server.js",
+        "start:production": "NODE_ENV=production node server-production.js",
+        "start:cluster": "NODE_ENV=production WORKERS=2 node server-production.js",
         "dev": "nodemon server.js",
-        "test": "node test-api.sh"
+        "migrate": "node database/migrate.js",
+        "test": "node test-api.sh",
+        "test:load": "node load-tests/simple-load-test.js"
     },
     "keywords": [
         "license",
         "validation",
         "api",
-        "saas"
+        "saas",
+        "scalable"
     ],
     "author": "SxConnect",
     "license": "PROPRIETARY",
     "dependencies": {
         "express": "^4.18.2",
         "express-rate-limit": "^7.1.5",
-        "jsonwebtoken": "^9.0.2"
+        "jsonwebtoken": "^9.0.2",
+        "pg": "^8.11.3",
+        "redis": "^4.6.12"
     },
     "devDependencies": {
         "nodemon": "^3.0.2"
     },
     "engines": {
-        "node": ">=20.0.0"
+        "node": ">=18.0.0"
     }
 }

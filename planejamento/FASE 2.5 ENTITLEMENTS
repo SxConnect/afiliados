@@ -1,0 +1,272 @@
+Você é um Arquiteto de Software Sênior especialista em SaaS escalável, billing recorrente e controle granular de permissões.
+
+Estamos evoluindo um sistema já existente com:
+
+API Node.js (validação de licença)
+
+PostgreSQL
+
+Docker + Traefik
+
+Sistema de planos e assinaturas recorrentes
+
+Controle básico de licenças
+
+Agora precisamos implementar a FASE 2.5 — Sistema Profissional de Entitlements (Direitos de Acesso Granular).
+
+⚠️ Esta fase é obrigatória antes da monetização avançada de plugins (Fase 3).
+
+⚠️ Não implemente ainda cobrança por plugin.
+⚠️ Não implemente ainda lógica complexa de billing usage-based.
+⚠️ O foco é estrutural e arquitetural.
+
+🎯 OBJETIVO DA FASE 2.5
+
+Construir uma camada de controle que permita:
+
+Separar plano de permissões reais
+
+Permitir add-ons futuros
+
+Permitir plugins pagos futuros
+
+Permitir quotas por recurso
+
+Permitir quotas por plugin
+
+Permitir limite por máquina
+
+Permitir sobreposição de permissões (plano + addon)
+
+Permitir desativação granular
+
+Permitir trial por recurso
+
+Ser preparada para 100k usuários
+
+Essa camada deve ser central e independente da lógica de pagamento.
+
+🏗 ARQUITETURA ESPERADA
+
+Criar um módulo isolado chamado:
+
+/modules/entitlements
+
+Separado de:
+
+/auth
+/billing
+/license
+
+Não misturar responsabilidades.
+
+🗄 MODELAGEM DE BANCO (OBRIGATÓRIA)
+
+Gerar migrations profissionais com UUID como PK e índices adequados.
+
+Tabelas mínimas obrigatórias:
+
+plans
+plan_features
+features
+subscriptions
+subscription_addons
+entitlements
+usage_counters
+plugin_registry
+plugin_entitlements
+
+📌 DEFINIÇÕES IMPORTANTES
+
+Feature = qualquer permissão ou limite configurável
+Exemplos:
+
+max_machines
+
+monthly_executions
+
+plugin_x_access
+
+export_enabled
+
+Plugin não deve ser hardcoded.
+
+Plugin deve ser tratado como entidade no banco.
+
+🔥 ESTRUTURA CONCEITUAL
+
+plans
+→ apenas define identidade comercial
+
+plan_features
+→ define quais features o plano concede
+
+subscription_addons
+→ adiciona features extras
+
+entitlements
+→ resultado final consolidado por usuário
+
+usage_counters
+→ controle real de consumo
+
+plugin_registry
+→ cadastro de plugins disponíveis
+
+plugin_entitlements
+→ controle específico por plugin
+
+🧠 LÓGICA DO SISTEMA DE ENTITLEMENTS
+
+Criar um serviço central:
+
+EntitlementResolverService
+
+Responsável por:
+
+Consolidar permissões do plano
+
+Aplicar add-ons
+
+Aplicar overrides administrativos
+
+Aplicar trials ativos
+
+Gerar snapshot final de permissões
+
+Esse snapshot deve ser:
+
+Cacheável
+
+Stateless
+
+Recalculável
+
+Versionável
+
+🔐 REGRAS TÉCNICAS IMPORTANTES
+
+Nenhuma verificação deve depender apenas do cliente.
+
+O cliente sempre consulta a VPS para validação de plugin crítico.
+
+Entitlements devem poder ser invalidados imediatamente.
+
+Implementar mecanismo de cache com TTL (Redis opcional).
+
+Implementar versionamento de entitlements para evitar inconsistência.
+
+📊 USAGE COUNTERS
+
+Criar sistema de contadores preparados para:
+
+Quota mensal
+
+Quota diária
+
+Quota por plugin
+
+Quota por recurso
+
+Implementar:
+
+incrementUsage(user_id, feature_key, amount)
+
+Bloquear automaticamente quando ultrapassar limite.
+
+🧱 PREPARAÇÃO PARA FASE 3
+
+A arquitetura deve permitir no futuro:
+
+Billing por plugin
+
+Billing por uso
+
+Add-ons temporários
+
+Trial automático por plugin
+
+Upsell inteligente
+
+Pacotes promocionais
+
+Sem necessidade de refatoração estrutural.
+
+📂 ORGANIZAÇÃO DE PASTAS ESPERADA
+
+/modules
+/entitlements
+- entitlement.entity.ts
+- feature.entity.ts
+- plan_feature.entity.ts
+- entitlement.service.ts
+- entitlement.resolver.ts
+- usage.service.ts
+- plugin.registry.ts
+
+Separação clara entre:
+
+Entities
+
+Services
+
+Repositories
+
+Controllers (se necessário)
+
+📡 ENDPOINTS NECESSÁRIOS
+
+Criar endpoints internos (não públicos):
+
+GET /internal/entitlements/:user_id
+POST /internal/usage/increment
+GET /internal/plugins/:plugin_id/status
+
+Todos protegidos por autenticação interna.
+
+⚙️ MIGRATIONS E SEED
+
+Gerar:
+
+Migrations completas
+
+Seed inicial com:
+
+Plano Free
+
+Plano Pro
+
+Features básicas
+
+2 plugins registrados
+
+📋 ENTREGÁVEIS ESPERADOS
+
+Quero que você entregue:
+
+Arquitetura detalhada do módulo
+
+Estrutura completa do banco
+
+Migrations prontas
+
+EntitlementResolverService implementado
+
+Sistema de usage counters
+
+Plugin registry estruturado
+
+Documentação técnica da Fase 2.5
+
+Checklist de validação
+
+Atualização do docker-compose se necessário
+
+Estratégia de cache
+
+🚫 NÃO FAZER
+
+Não misturar billing com entitlements
+Não hardcodar plugin
+Não acoplar plano a lógica de execução
+Não simplificar estrutura pensando só em MVP

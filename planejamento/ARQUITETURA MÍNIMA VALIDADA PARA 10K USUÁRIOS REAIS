@@ -1,0 +1,213 @@
+✅ IMPLEMENTADO - Veja: planejamento/ARQUITETURA_10K_IMPLEMENTADA.md
+
+📋 Checklist: afiliado/vps/CHECKLIST_VALIDACAO_10K.md
+
+🏗️ ARQUITETURA IMPLEMENTADA:
+- ✅ PostgreSQL com pool otimizado (20 conexões/worker)
+- ✅ Redis cache (TTL 300s)
+- ✅ Node.js Cluster (2 workers)
+- ✅ Rate limiting ajustado (1000 req/min)
+- ✅ Migrações e índices criados
+- ✅ Graceful shutdown
+- ⏳ AGUARDANDO VALIDAÇÃO COM TESTES REAIS
+
+Você é um Arquiteto de Software Sênior especializado em SaaS escalável.
+
+Objetivo:
+
+Implementar a arquitetura mínima ideal para suportar 10.000 usuários reais (ativos) com estabilidade, baixa latência e previsibilidade, evitando overengineering.
+
+⚠️ Não implementar arquitetura para 1M.
+⚠️ Não usar soluções enterprise desnecessárias.
+⚠️ Foco em simplicidade, estabilidade e mensuração.
+
+Organize a resposta como:
+
+Arquitetura proposta
+
+Implementação técnica
+
+Configurações recomendadas
+
+Checklist de validação
+
+1️⃣ DESENHAR A ARQUITETURA IDEAL MÍNIMA
+
+A arquitetura deve conter:
+
+Camada 1 — Edge
+
+Traefik (já existente)
+
+TLS ativo
+
+Rate limit ajustado para produção real
+
+Camada 2 — Aplicação
+
+Node.js (cluster mode ativado)
+
+2 instâncias da aplicação (horizontal básico)
+
+PM2 ou cluster nativo
+
+Camada 3 — Banco de Dados
+
+PostgreSQL real
+
+Pool de conexões configurado
+
+Índices revisados
+
+Limite de conexões adequado
+
+Camada 4 — Cache
+
+Redis
+
+Cache de snapshots de entitlements
+
+TTL configurável (ex: 5 min)
+
+Invalidação em escrita
+
+2️⃣ IMPLEMENTAÇÃO TÉCNICA OBRIGATÓRIA
+PostgreSQL
+
+Implementar pg Pool
+
+max: 20 conexões por instância
+
+idleTimeoutMillis configurado
+
+statement_timeout configurado
+
+log de slow query > 200ms
+
+Redis
+
+Implementar:
+
+Cache para:
+
+entitlement snapshot
+
+validação de plugin
+
+TTL 300 segundos
+
+Fallback para DB
+
+Invalidação automática ao alterar quota
+
+Node Cluster
+
+Ativar cluster mode usando:
+
+PM2 ou node cluster
+
+2 workers inicialmente
+
+Graceful shutdown implementado
+
+3️⃣ CONFIGURAÇÕES DE PRODUÇÃO
+Rate Limit
+
+Configuração recomendada:
+
+1000 req/min por IP
+OU
+
+Remover rate limit e usar WAF externo (se aplicável)
+
+Pool de Conexões
+
+Se 2 instâncias:
+
+20 conexões cada
+
+PostgreSQL max_connections >= 100
+
+Índices Obrigatórios
+
+Verificar presença de índice em:
+
+usage_counters (user_id, feature_id)
+
+entitlements (user_id)
+
+plugin_entitlements (user_id, plugin_id)
+
+Se não existir, criar.
+
+4️⃣ CHECKLIST DE VALIDAÇÃO (OBRIGATÓRIO)
+
+Gerar checklist com confirmação real:
+
+Infraestrutura
+
+ PostgreSQL conectado
+
+ Redis conectado
+
+ Cluster ativo (2 workers)
+
+ Traefik roteando corretamente
+
+Performance
+
+Executar teste real na VPS:
+
+Cenários:
+
+100 req/s por 2 min
+
+250 req/s por 3 min
+
+400 req/s por 3 min
+
+Medir:
+
+p95 < 150ms
+
+p99 < 300ms
+
+Erro < 1%
+
+CPU < 75%
+
+DB conexões < 70% do limite
+
+5️⃣ ESTIMATIVA DE CAPACIDADE
+
+Com base nos dados reais, calcular:
+
+Throughput sustentável
+
+Usuários simultâneos estimados
+
+Margem de segurança
+
+6️⃣ RELATÓRIO FINAL
+
+Classificar:
+
+Pronto para 10K usuários ativos
+
+Próximo do limite
+
+Precisa ajuste
+
+Sem marketing.
+Sem suposição.
+Baseado em números.
+
+OBJETIVO FINAL
+
+Ter uma arquitetura:
+
+✔ Simples
+✔ Validada
+✔ Mensurável
+✔ Preparada para monetização
+✔ Sem complexidade desnecessária

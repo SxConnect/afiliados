@@ -1,0 +1,190 @@
+Você é um Arquiteto de Software Sênior realizando uma auditoria técnica formal no módulo de Entitlements (Fase 2.5).
+
+Objetivo:
+
+Gerar um documento estruturado, técnico e detalhado respondendo às perguntas críticas abaixo, com evidências arquiteturais claras.
+
+⚠️ Não responda superficialmente.
+⚠️ Não responda com suposições.
+⚠️ Explique como está implementado hoje.
+⚠️ Se algo não estiver implementado, declare explicitamente.
+⚠️ Proponha melhorias quando necessário.
+
+Organize a resposta em seções numeradas.
+
+1️⃣ EXPOSIÇÃO DE REDE E SEGURANÇA
+
+1.1 A API interna na porta 4003 está exposta publicamente?
+
+Está registrada no Traefik?
+
+Está acessível externamente?
+
+Está protegida apenas por API Key?
+
+Está isolada por network interna Docker?
+
+1.2 Qual é o modelo de isolamento de rede?
+
+Docker network interna?
+
+Mesma network do serviço público?
+
+Existe firewall bloqueando acesso externo?
+
+1.3 Qual é o risco atual de acesso indevido?
+
+Classifique:
+
+Baixo
+
+Médio
+
+Alto
+
+Explique tecnicamente.
+
+2️⃣ ATOMICIDADE DOS USAGE COUNTERS
+
+2.1 O incremento de uso é transacional?
+
+Está usando transação SQL?
+
+Está usando UPDATE condicional?
+
+Está usando Redis atomic increment?
+
+Pode haver race condition?
+
+2.2 Cenário de teste:
+
+Se dois requests simultâneos tentarem consumir a última quota disponível, o que acontece?
+
+Explique tecnicamente.
+
+2.3 Existe proteção contra double-spend de quota?
+
+Se sim, como?
+Se não, o que deve ser feito?
+
+3️⃣ CONSISTÊNCIA DO SNAPSHOT DE ENTITLEMENTS
+
+3.1 O snapshot é:
+
+Persistido no banco?
+
+Mantido apenas em cache?
+
+Mantido em memória local?
+
+3.2 Se houver múltiplas instâncias da API:
+
+O snapshot é consistente entre instâncias?
+
+Existe Redis compartilhado?
+
+Pode ocorrer divergência?
+
+3.3 Como funciona a invalidação global?
+
+Se um plano mudar:
+
+Todos snapshots são invalidados?
+
+Ou dependem do TTL?
+
+Explique o mecanismo exato.
+
+4️⃣ CACHE E ESCALABILIDADE
+
+4.1 O cache atual é:
+
+In-memory?
+
+Redis?
+
+Banco?
+
+4.2 O sistema suporta múltiplas instâncias horizontais?
+
+Explique o comportamento em:
+
+1 instância
+
+3 instâncias
+
+10 instâncias
+
+4.3 Existe risco de inconsistência entre nós?
+
+Se sim, explique.
+
+5️⃣ SEPARAÇÃO ARQUITETURAL
+
+5.1 A API interna é:
+
+Microserviço separado?
+
+Apenas módulo isolado?
+
+Processo separado?
+
+5.2 Existe benefício real nessa separação neste estágio?
+
+5.3 Isso adiciona complexidade operacional desnecessária?
+
+Análise crítica obrigatória.
+
+6️⃣ PREPARAÇÃO REAL PARA 10K USUÁRIOS
+
+Responda tecnicamente:
+
+6.1 O banco está preparado para alto volume de usage logs?
+
+6.2 Há índices adequados nas tabelas críticas?
+
+6.3 O sistema suporta:
+
+100 requisições por segundo?
+
+500 requisições por segundo?
+
+Explique os gargalos atuais.
+
+7️⃣ ANÁLISE DE RISCOS
+
+Liste:
+
+5 riscos técnicos atuais
+
+Impacto de cada risco
+
+Prioridade (Alta / Média / Baixa)
+
+Solução recomendada
+
+8️⃣ VEREDICTO FINAL
+
+Classifique o sistema atual como:
+
+Pronto para Fase 3
+
+Precisa ajustes moderados
+
+Precisa refatoração estrutural
+
+Explique objetivamente.
+
+FORMATO DA RESPOSTA
+
+A resposta deve ser entregue como:
+
+Documento técnico estruturado com títulos claros, análise crítica e recomendações.
+
+Sem marketing.
+Sem frases genéricas.
+Sem autoelogio.
+
+Objetivo final:
+
+Determinar se a Fase 2.5 está realmente pronta para sustentar monetização avançada na Fase 3.

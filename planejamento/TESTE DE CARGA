@@ -1,0 +1,238 @@
+✅ RESOLVIDO - Veja: 
+- planejamento/TESTE_DE_CARGA_SOLUCAO.md (Solução Implementada)
+- planejamento/RELATORIO_TESTE_CARGA_REAL.md (Relatório Real Executado)
+
+🔴 RESULTADO: Sistema NÃO está pronto - Rate limiting bloqueando 97% das requisições
+
+Você é um Engenheiro Sênior de Performance e Confiabilidade (SRE).
+
+Objetivo:
+
+Executar testes reais de carga no sistema de Entitlements (FASE 2.5), medir métricas críticas, identificar gargalos e, se necessário, implementar melhorias estruturais.
+
+⚠️ Não apenas descreva.
+⚠️ Execute medições reais.
+⚠️ Gere métricas numéricas.
+⚠️ Baseie decisões em dados.
+
+Organize a resposta como um relatório técnico estruturado.
+
+1️⃣ PREPARAÇÃO DO AMBIENTE DE TESTE
+
+1.1 Identifique:
+
+Versão do Node
+
+Versão do PostgreSQL
+
+Configuração de CPU e RAM da VPS
+
+Limite de conexões do PostgreSQL
+
+Pool de conexões do backend
+
+1.2 Confirme:
+
+Logs de erro ativados
+
+Slow query log ativado
+
+Monitoramento de CPU/memória disponível
+
+Se algo estiver ausente, implemente antes do teste.
+
+2️⃣ DEFINIR CENÁRIOS DE TESTE
+
+Criar 4 cenários progressivos:
+
+Cenário A — Base
+
+100 req/s por 2 minutos
+
+Cenário B — Moderado
+
+250 req/s por 3 minutos
+
+Cenário C — Alto
+
+500 req/s por 3 minutos
+
+Cenário D — Stress
+
+Subir progressivamente até falha (breakpoint)
+
+Endpoints críticos a testar:
+
+Verificação de quota
+
+Incremento de usage counter
+
+Resolução de entitlement
+
+Acesso a plugin
+
+Simular concorrência real (usuários simultâneos).
+
+Ferramenta sugerida:
+
+k6
+
+autocannon
+
+artillery
+
+Escolher a mais adequada.
+
+3️⃣ MÉTRICAS OBRIGATÓRIAS
+
+Para cada cenário, medir:
+
+Aplicação
+
+Latência média
+
+Latência p95
+
+Latência p99
+
+Throughput real
+
+Erros (%)
+
+Tempo máximo
+
+Banco de Dados
+
+Queries por segundo
+
+Tempo médio de query
+
+Lock waits
+
+Conexões ativas
+
+Saturação do pool
+
+Infraestrutura
+
+Uso de CPU (%)
+
+Uso de RAM (%)
+
+I/O do disco
+
+Event loop lag (Node)
+
+Gerar tabela comparativa.
+
+4️⃣ ANÁLISE DOS RESULTADOS
+
+Para cada cenário:
+
+Identificar gargalo principal:
+
+CPU?
+
+DB?
+
+Locking?
+
+Pool?
+
+I/O?
+
+Classificar:
+
+Saudável
+
+Limite próximo
+
+Instável
+
+Crítico
+
+5️⃣ SIMULAÇÃO DE ESCALA PARA 10K / 50K USUÁRIOS
+
+Com base nos dados medidos:
+
+Estimar usuários simultâneos suportados
+
+Estimar requisições máximas sustentáveis
+
+Estimar ponto de degradação
+
+Justificar matematicamente.
+
+6️⃣ DECISÃO ARQUITETURAL
+
+Se qualquer métrica ultrapassar:
+
+p95 > 200ms
+
+Erro > 1%
+
+CPU > 75% sustentado
+
+DB saturação > 70%
+
+Então:
+
+Implementar automaticamente:
+
+Opção A — Redis Cache
+
+Snapshot em Redis
+
+TTL configurável
+
+Fallback para DB
+
+Opção B — Redis Pub/Sub
+
+Invalidação global de snapshot
+
+Opção C — Ajuste de pool de conexões
+
+Opção D — Indexação adicional
+
+Explique o que foi implementado e por quê.
+
+7️⃣ RELATÓRIO FINAL
+
+Gerar documento com:
+
+Gráficos de carga
+
+Tabelas comparativas
+
+Gargalos identificados
+
+Recomendações
+
+Classificação final:
+
+Sistema está:
+
+Pronto para 10K
+
+Pronto para 50K
+
+Precisa ajustes
+
+Precisa Redis obrigatório
+
+8️⃣ VEREDICTO EXECUTIVO
+
+Responder claramente:
+
+Hoje o sistema suporta quantos usuários ativos simultâneos com segurança?
+
+Com base em dados, não suposição.
+
+OBJETIVO FINAL
+
+Tomar decisão técnica baseada em evidência antes de iniciar a FASE 3 (Monetização de Plugins).
+
+Sem marketing.
+Sem otimismo infundado.
+Somente engenharia baseada em dados.

@@ -1,275 +1,270 @@
-# VPS License Validation Server
+# 🚀 VPS License Server
 
-Servidor de validação de licenças para o Sistema de Afiliados.
+Servidor de validação de licenças para o sistema Afiliados. Este módulo roda na VPS e gerencia autenticação, planos e quotas.
 
-## 🚀 Funcionalidades
+## 📦 O que está incluído
 
-- ✅ Validação de licenças no banco de dados
-- ✅ Verificação de status (ativa/inativa)
-- ✅ Verificação de expiração
-- ✅ Machine fingerprint (controle de dispositivos)
-- ✅ Sistema de planos (Free, Basic, Growth, Pro)
-- ✅ Controle de quota por plano
-- ✅ Assinatura criptográfica RSA-2048
-- ✅ API REST completa
+### APIs e Serviços
+- **API Pública (Port 4000)** - Validação de licenças, quotas e plugins
+- **API Admin (Port 4001)** - Painel administrativo completo
+- **Webhook API (Port 4002)** - Integração com Mercado Pago/Stripe
+- **Admin Panel (Port 3001)** - Interface web Next.js
 
-## 📦 Imagem Docker
+### Infraestrutura
+- **PostgreSQL** - Banco de dados de licenças e entitlements
+- **Redis** - Cache e filas (opcional)
+- **Docker** - Containerização completa
+- **Traefik** - Proxy reverso e SSL automático
 
-A imagem Docker está disponível no GitHub Container Registry:
+### Sistema de Entitlements (FASE 2.5) ⭐ NOVO
+- **Controle Granular de Permissões** - Features, quotas, plugins
+- **Usage Counters** - Contadores atômicos de uso
+- **Plugin Registry** - Registro dinâmico de plugins
+- **Trials Automáticos** - Sistema de trials por plugin
+- **Add-ons** - Complementos ao plano base
+- **Overrides Administrativos** - Permissões customizadas
+
+## 🏗️ Arquitetura
+
+```
+┌─────────────┐
+│   Cliente   │ (Core .exe na máquina do usuário)
+│  (Desktop)  │
+└──────┬──────┘
+       │ HTTPS
+       ▼
+┌─────────────┐
+│   Traefik   │ (Proxy + SSL)
+└──────┬──────┘
+       │
+       ▼
+┌─────────────┐     ┌──────────────┐     ┌─────────┐
+│  VPS Server │────▶│  PostgreSQL  │     │  Redis  │
+│   (Node.js) │     │  (Licenças)  │     │ (Cache) │
+└─────────────┘     └──────────────┘     └─────────┘
+```
+
+## 🚀 Deploy Rápido
+
+### 1. Build da Imagem
 
 ```bash
-docker pull ghcr.io/sxconnect/afiliados/vps:latest
+# Windows
+build-and-push.bat
+
+# Linux/Mac
+./build-and-push.sh
 ```
+
+### 2. Push para GHCR
+
+```bash
+# Windows
+# O script build-and-push.bat já faz o push
+
+# Linux/Mac
+./push-to-ghcr.sh
+```
+
+### 3. Deploy no Portainer
+
+1. Acesse o Portainer
+2. Vá em **Stacks** > **Add Stack**
+3. Cole o conteúdo de `docker-compose.production.yml`
+4. Configure as variáveis de ambiente (veja `.env.production`)
+5. Clique em **Deploy**
 
 ## 🔧 Configuração
 
-### Variáveis de Ambiente
-
-Crie um arquivo `.env` com as seguintes variáveis:
+### Variáveis de Ambiente Obrigatórias
 
 ```env
-# Porta do servidor
-VPS_PORT=4000
+# JWT Secret (gere com: openssl rand -base64 32)
+JWT_SECRET=seu-secret-super-seguro
 
-# Ambiente
-NODE_ENV=production
+# License Secret (gere com: openssl rand -base64 32)
+LICENSE_SECRET=seu-license-secret
 
-# JWT Secret (deve ser o mesmo do Core Engine)
-JWT_SECRET=seu-secret-super-seguro-aqui
+# Database
+DB_PASSWORD=senha-postgres-segura
 
-# Chave Privada RSA para assinatura
-PRIVATE_KEY=-----BEGIN RSA PRIVATE KEY-----
-MIIEpAIBAAKCAQEA...
------END RSA PRIVATE KEY-----
+# Redis
+REDIS_PASSWORD=senha-redis-segura
+
+# Domínio
+VPS_DOMAIN=vps.afiliados.seudominio.com.br
 ```
 
-## 🚀 Deploy com Docker
-
-### Opção 1: Docker Run
+### Gerar Secrets
 
 ```bash
-docker run -d \
-  --name afiliados-vps \
-  -p 4000:4000 \
-  -e VPS_PORT=4000 \
-  -e NODE_ENV=production \
-  -e JWT_SECRET=seu-secret-aqui \
-  --restart unless-stopped \
-  ghcr.io/sxconnect/afiliados/vps:latest
+# JWT Secret
+openssl rand -base64 32
+
+# License Secret
+openssl rand -base64 32
+
+# Passwords
+openssl rand -base64 24
 ```
 
-### Opção 2: Docker Compose
-
-```bash
-# 1. Criar arquivo .env
-cp .env.example .env
-nano .env
-
-# 2. Iniciar serviço
-docker-compose up -d
-
-# 3. Ver logs
-docker-compose logs -f
-
-# 4. Parar serviço
-docker-compose down
-```
-
-## 🧪 Testar a API
+## 📝 Endpoints da API
 
 ### Health Check
-
 ```bash
-curl http://localhost:4000/api/plans
+GET /health
+```
+
+### Listar Planos
+```bash
+GET /api/plans
 ```
 
 ### Validar Licença
-
 ```bash
-curl -X POST http://localhost:4000/api/validate \
-  -H "Content-Type: application/json" \
-  -d '{
-    "phoneNumber": "5511999999999",
-    "machineId": "abc123...",
-    "timestamp": 1234567890
-  }'
+POST /api/validate-license
+{
+  "whatsapp": "5511999999999",
+  "fingerprint": "machine-id-123"
+}
 ```
 
 ### Verificar Quota
-
 ```bash
-curl http://localhost:4000/api/quota \
-  -H "Authorization: Bearer SEU_TOKEN"
+POST /api/check-quota
+{
+  "whatsapp": "5511999999999",
+  "token": "jwt-token"
+}
 ```
 
-## 📊 Endpoints Disponíveis
+### Consumir Quota
+```bash
+POST /api/consume-quota
+{
+  "whatsapp": "5511999999999",
+  "token": "jwt-token",
+  "amount": 1
+}
+```
 
-### Públicos
+### Validar Plugin
+```bash
+POST /api/validate-plugin
+{
+  "whatsapp": "5511999999999",
+  "token": "jwt-token",
+  "pluginId": "auto-responder"
+}
+```
 
-- `GET /api/plans` - Lista planos disponíveis
+## 🧪 Testes
 
-### Protegidos
+Veja o guia completo em [TEST_LOCAL.md](./TEST_LOCAL.md)
 
-- `POST /api/validate` - Valida licença
-- `GET /api/quota` - Verifica quota disponível
-- `POST /api/quota/consume` - Consome quota
+```bash
+# Teste rápido
+docker run --rm -d \
+  --name vps-test \
+  -p 4000:4000 \
+  -e JWT_SECRET=test \
+  -e LICENSE_SECRET=test \
+  ghcr.io/sxconnect/afiliados-vps:latest
+
+curl http://localhost:4000/health
+docker stop vps-test
+```
+
+## 📊 Banco de Dados
+
+### Schema
+
+- **licenses** - Licenças ativas
+- **plans** - Planos disponíveis
+- **quota_usage** - Histórico de uso
+- **audit_logs** - Logs de auditoria
+
+### Seed Data
+
+O arquivo `seed.sql` cria:
+- 3 planos (Free, Pro, Enterprise)
+- 3 licenças de teste
+- Dados de exemplo
 
 ## 🔒 Segurança
 
-### Assinatura Criptográfica
+- ✅ JWT para autenticação
+- ✅ HMAC para assinatura de dados
+- ✅ Rate limiting (100 req/15min)
+- ✅ HTTPS obrigatório (Traefik)
+- ✅ Secrets em variáveis de ambiente
+- ✅ Container não-root
+- ✅ Health checks
 
-Todas as respostas de validação são assinadas com RSA-2048:
+## 📦 Volumes
 
-```javascript
-const signature = crypto
-  .createSign('SHA256')
-  .update(JSON.stringify(data))
-  .sign(PRIVATE_KEY, 'base64');
+```yaml
+afiliados_vps_postgres_data  # Dados do PostgreSQL
+afiliados_vps_redis_data     # Dados do Redis
 ```
 
-### Machine Fingerprint
+## 🌐 Networks
 
-Controla o uso da licença por dispositivo:
-
-- Primeiro login: Registra o machine ID
-- Logins subsequentes: Valida contra o ID registrado
-- Bloqueia uso em múltiplos dispositivos
-
-## 📈 Monitoramento
-
-### Health Check
-
-O container possui health check automático:
-
-```bash
-docker ps
-# Verifica a coluna STATUS: healthy/unhealthy
-```
-
-### Logs
-
-```bash
-# Ver logs em tempo real
-docker logs -f afiliados-vps
-
-# Ver últimas 100 linhas
-docker logs --tail 100 afiliados-vps
-```
-
-### Métricas
-
-```bash
-# Uso de recursos
-docker stats afiliados-vps
-```
-
-## 🔄 Atualização
-
-```bash
-# 1. Baixar nova versão
-docker pull ghcr.io/sxconnect/afiliados/vps:latest
-
-# 2. Parar container atual
-docker stop afiliados-vps
-docker rm afiliados-vps
-
-# 3. Iniciar nova versão
-docker-compose up -d
-
-# Ou com docker run
-docker run -d \
-  --name afiliados-vps \
-  -p 4000:4000 \
-  --env-file .env \
-  --restart unless-stopped \
-  ghcr.io/sxconnect/afiliados/vps:latest
-```
-
-## 🗄️ Banco de Dados
-
-Atualmente usa Map em memória. Para produção, migre para PostgreSQL:
-
-### Estrutura da Tabela
-
-```sql
-CREATE TABLE licenses (
-  phone_number VARCHAR(20) PRIMARY KEY,
-  plan VARCHAR(20) NOT NULL,
-  quota_total INTEGER NOT NULL,
-  quota_used INTEGER DEFAULT 0,
-  plugins TEXT[],
-  active BOOLEAN DEFAULT true,
-  machine_id VARCHAR(255),
-  expires_at TIMESTAMP NOT NULL,
-  created_at TIMESTAMP DEFAULT NOW(),
-  last_login TIMESTAMP
-);
-```
-
-## 🔐 Licenças de Teste
-
-```javascript
-// Pro - Ilimitado
-phoneNumber: '5511999999999'
-plan: 'pro'
-quota: 999999
-
-// Growth - 500 mensagens
-phoneNumber: '5511888888888'
-plan: 'growth'
-quota: 500
-
-// Basic - 100 mensagens
-phoneNumber: '5511777777777'
-plan: 'basic'
-quota: 100
+```yaml
+afiliados_vps_network   # Rede interna
+portainer_default       # Rede do Traefik
 ```
 
 ## 📚 Documentação Adicional
 
-- [Fluxo de Validação](../docs/FLUXO_VALIDACAO.md)
-- [API Documentation](../docs/API_DOCUMENTATION.md)
-- [Como Testar](../COMO_TESTAR.md)
+### Guias de Deploy e Build
+- [BUILD_NOW.md](./BUILD_NOW.md) - Guia de build
+- [DEPLOY.md](./DEPLOY.md) - Guia de deploy
+- [PORTAINER_DEPLOY.md](./PORTAINER_DEPLOY.md) - Deploy no Portainer
+- [TEST_LOCAL.md](./TEST_LOCAL.md) - Testes locais
 
-## 🐛 Troubleshooting
+### Sistema de Entitlements (FASE 2.5) ⭐
+- [ENTITLEMENTS_USAGE_GUIDE.md](./docs/ENTITLEMENTS_USAGE_GUIDE.md) - Guia completo de uso
+- [COMANDOS_UTEIS.md](./COMANDOS_UTEIS.md) - Comandos úteis
+- [README.md](./shared/entitlements/README.md) - README do módulo
+
+### Documentação Técnica (Planejamento)
+- [RELATORIO_AUDITORIA_FASE2.5.md](../planejamento/RELATORIO_AUDITORIA_FASE2.5.md) - Auditoria técnica
+- [RESUMO_EXECUTIVO_FASE2.5.md](../planejamento/RESUMO_EXECUTIVO_FASE2.5.md) - Resumo executivo
+- [INDICE_DOCUMENTACAO_FASE2.5.md](../planejamento/INDICE_DOCUMENTACAO_FASE2.5.md) - Índice completo
+
+## 🆘 Troubleshooting
 
 ### Container não inicia
 
 ```bash
-# Ver logs de erro
-docker logs afiliados-vps
+# Ver logs
+docker logs afiliados_vps_server
 
 # Verificar variáveis de ambiente
-docker exec afiliados-vps env
+docker exec afiliados_vps_server env | grep -E "JWT|LICENSE|DB|REDIS"
 ```
 
-### Porta já em uso
+### Erro de conexão com banco
 
 ```bash
-# Windows
-netstat -ano | findstr :4000
-taskkill /PID <PID> /F
+# Verificar se PostgreSQL está rodando
+docker ps | grep postgres
 
-# Linux
-lsof -ti:4000 | xargs kill -9
+# Testar conexão
+docker exec afiliados_vps_postgres pg_isready -U afiliados_vps_user
 ```
 
-### Health check falhando
+### Erro de conexão com Redis
 
 ```bash
-# Testar manualmente
-docker exec afiliados-vps node -e "require('http').get('http://localhost:4000/api/plans', (r) => console.log(r.statusCode))"
+# Verificar se Redis está rodando
+docker ps | grep redis
+
+# Testar conexão
+docker exec afiliados_vps_redis redis-cli -a $REDIS_PASSWORD ping
 ```
 
 ## 📞 Suporte
 
-Para problemas ou dúvidas:
-1. Verifique os logs: `docker logs afiliados-vps`
-2. Teste a API: `curl http://localhost:4000/api/plans`
-3. Consulte a documentação completa
-
-## 🔗 Links Úteis
-
-- **Repositório**: https://github.com/SxConnect/afiliados
-- **Imagem Docker**: https://github.com/SxConnect/afiliados/pkgs/container/afiliados%2Fvps
-- **Issues**: https://github.com/SxConnect/afiliados/issues
+Para problemas ou dúvidas, consulte a documentação completa em `/docs`.
