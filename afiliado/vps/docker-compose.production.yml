@@ -1,177 +1,175 @@
 version: '3.8'
 
+# Docker Compose para Produção - VPS License Server v2.0.0
+# Arquitetura otimizada para 10K usuários
+
 services:
-  # VPS License Server
+  # VPS License Validation Server
   vps:
-    image: ghcr.io/sxconnect/afiliados-vps:latest
-    container_name: afiliados_vps_server
+    image: ghcr.io/sxconnect/afiliados-vps:2.0.0
+    container_name: vps-license-server
     restart: unless-stopped
-    networks:
-      - afiliados_vps_network
-      - portainer_default
+    ports:
+      - "3000:3000"
     environment:
-      - NODE_ENV=production
-      - PORT=4000
-      # JWT Secret
-      - JWT_SECRET=${JWT_SECRET:-seu-secret-super-seguro-mude-em-producao}
-      # License Secret
-      - LICENSE_SECRET=${LICENSE_SECRET:-seu-license-secret-mude-em-producao}
-      # RSA Keys
-      - PRIVATE_KEY=${PRIVATE_KEY}
+      # Environment
+      NODE_ENV: production
+      PORT: 3000
+      WORKERS: 2
+
+      # Secrets (usar .env file)
+      JWT_SECRET: ${JWT_SECRET}
+      LICENSE_SECRET: ${LICENSE_SECRET}
+
       # Database
-      - DATABASE_URL=postgresql://afiliados_vps_user:${DB_PASSWORD}@afiliados_vps_postgres:5432/afiliados_vps_licenses
-      - DB_HOST=afiliados_vps_postgres
-      - DB_PORT=5432
-      - DB_NAME=afiliados_vps_licenses
-      - DB_USER=afiliados_vps_user
-      - DB_PASSWORD=${DB_PASSWORD}
+      DB_HOST: postgres
+      DB_PORT: 5432
+      DB_NAME: afiliados_vps_licenses
+      DB_USER: afiliados_vps_user
+      DB_PASSWORD: ${DB_PASSWORD}
+      DB_POOL_MAX: 20
+      DB_POOL_MIN: 5
+
       # Redis
-      - REDIS_URL=redis://:${REDIS_PASSWORD}@afiliados_vps_redis:6379
-      - REDIS_HOST=afiliados_vps_redis
-      - REDIS_PORT=6379
-      - REDIS_PASSWORD=${REDIS_PASSWORD}
-      # Cache TTL
-      - CACHE_TTL=3600
+      REDIS_HOST: redis
+      REDIS_PORT: 6379
+      REDIS_PASSWORD: ${REDIS_PASSWORD}
+      CACHE_TTL: 300
+    depends_on:
+      postgres:
+        condition: service_healthy
+      redis:
+        condition: service_healthy
+    healthcheck:
+      test: ["CMD", "node", "-e", "require('http').get('http://localhost:3000/health', (r) => {let d='';r.on('data',c=>d+=c);r.on('end',()=>{try{const j=JSON.parse(d);process.exit(j.status==='ok'&&j.database?.connected?0:1)}catch(e){process.exit(1)}})})"
+      interval: 30s
+      timeout: 3s
+      start_period: 10s
+      retries: 3
+    networks:
+      - vps-network
     labels:
       - "traefik.enable=true"
-      - "traefik.http.routers.afiliados-vps.rule=Host(`${VPS_DOMAIN:-vps.afiliados.sxconnect.com.br}`)"
-      - "traefik.http.routers.afiliados-vps.entrypoints=websecure"
-      - "traefik.http.routers.afiliados-vps.tls=true"
-      - "traefik.http.routers.afiliados-vps.tls.certresolver=leresolver"
-      - "traefik.http.services.afiliados-vps.loadbalancer.server.port=4000"
-      - "traefik.docker.network=portainer_default"
-      # Rate Limiting
-      - "traefik.http.routers.afiliados-vps.middlewares=afiliados-vps-ratelimit,afiliados-vps-headers"
-      - "traefik.http.middlewares.afiliados-vps-ratelimit.ratelimit.average=100"
-      - "traefik.http.middlewares.afiliados-vps-ratelimit.ratelimit.period=15m"
-      - "traefik.http.middlewares.afiliados-vps-ratelimit.ratelimit.burst=50"
-      # Security Headers
-      - "traefik.http.middlewares.afiliados-vps-headers.headers.stsSeconds=31536000"
-      - "traefik.http.middlewares.afiliados-vps-headers.headers.stsIncludeSubdomains=true"
-      - "traefik.http.middlewares.afiliados-vps-headers.headers.stsPreload=true"
-    depends_on:
-      afiliados_vps_postgres:
-        condition: service_healthy
-      afiliados_vps_redis:
-        condition: service_healthy
-    healthcheck:
-      test: ["CMD", "node", "-e", "require('http').get('http://localhost:4000/health', (r) => {process.exit(r.statusCode === 200 ? 0 : 1)})"]
-      interval: 30s
-      timeout: 10s
-      retries: 3
-      start_period: 40s
-    logging:
-      driver: json-file
-      options:
-        max-size: "10m"
-        max-file: "3"
+      - "traefik.http.routers.vps.rule=Host(`vps.seu-dominio.com`)"
+      - "traefik.http.routers.vps.entrypoints=websecure"
+      - "traefik.http.routers.vps.tls.certresolver=myresolver"
+      - "traefik.http.services.vps.loadbalancer.server.port=3000"
 
   # PostgreSQL Database
-  afiliados_vps_postgres:
+  postgres:
     image: postgres:15-alpine
-    container_name: afiliados_vps_postgres
+    container_name: vps-postgres
     restart: unless-stopped
-    networks:
-      - afiliados_vps_network
-      - portainer_default
     environment:
-      - POSTGRES_USER=afiliados_vps_user
-      - POSTGRES_PASSWORD=${DB_PASSWORD:-mude-esta-senha-em-producao}
-      - POSTGRES_DB=afiliados_vps_licenses
-      - POSTGRES_INITDB_ARGS=--encoding=UTF-8 --lc-collate=C --lc-ctype=C
-      - PGDATA=/var/lib/postgresql/data/pgdata
+      POSTGRES_DB: afiliados_vps_licenses
+      POSTGRES_USER: afiliados_vps_user
+      POSTGRES_PASSWORD: ${DB_PASSWORD}
+      POSTGRES_INITDB_ARGS: "-E UTF8 --locale=en_US.UTF-8"
     volumes:
-      - afiliados_vps_postgres_data:/var/lib/postgresql/data
-      - ./init.sql:/docker-entrypoint-initdb.d/01-init.sql:ro
-      - ./seed.sql:/docker-entrypoint-initdb.d/02-seed.sql:ro
+      - postgres-data:/var/lib/postgresql/data
+      - ./database/migrations:/docker-entrypoint-initdb.d:ro
+    ports:
+      - "5432:5432"
     healthcheck:
       test: ["CMD-SHELL", "pg_isready -U afiliados_vps_user -d afiliados_vps_licenses"]
-      interval: 5s
+      interval: 10s
       timeout: 5s
       retries: 5
-    logging:
-      driver: json-file
-      options:
-        max-size: "10m"
-        max-file: "3"
-    labels:
-      - "traefik.enable=false"
-
-  # Redis Cache & Queue
-  afiliados_vps_redis:
-    image: redis:7-alpine
-    container_name: afiliados_vps_redis
-    restart: unless-stopped
     networks:
-      - afiliados_vps_network
+      - vps-network
+    command:
+      - "postgres"
+      - "-c"
+      - "max_connections=100"
+      - "-c"
+      - "shared_buffers=256MB"
+      - "-c"
+      - "effective_cache_size=1GB"
+      - "-c"
+      - "maintenance_work_mem=64MB"
+      - "-c"
+      - "checkpoint_completion_target=0.9"
+      - "-c"
+      - "wal_buffers=16MB"
+      - "-c"
+      - "default_statistics_target=100"
+      - "-c"
+      - "random_page_cost=1.1"
+      - "-c"
+      - "effective_io_concurrency=200"
+      - "-c"
+      - "work_mem=2621kB"
+      - "-c"
+      - "min_wal_size=1GB"
+      - "-c"
+      - "max_wal_size=4GB"
+      - "-c"
+      - "log_min_duration_statement=200"
+
+  # Redis Cache
+  redis:
+    image: redis:7-alpine
+    container_name: vps-redis
+    restart: unless-stopped
     command: >
       redis-server
-      --requirepass ${REDIS_PASSWORD:-mude-esta-senha-redis}
-      --maxmemory 256mb
+      --requirepass ${REDIS_PASSWORD}
+      --maxmemory 512mb
       --maxmemory-policy allkeys-lru
       --save 900 1
       --save 300 10
       --save 60 10000
-      --appendonly yes
-      --appendfsync everysec
     volumes:
-      - afiliados_vps_redis_data:/data
+      - redis-data:/data
+    ports:
+      - "6379:6379"
     healthcheck:
-      test: ["CMD", "redis-cli", "--pass", "${REDIS_PASSWORD:-mude-esta-senha-redis}", "ping"]
+      test: ["CMD", "redis-cli", "--raw", "incr", "ping"]
       interval: 10s
       timeout: 3s
-      retries: 3
-    logging:
-      driver: json-file
-      options:
-        max-size: "10m"
-        max-file: "3"
-    labels:
-      - "traefik.enable=false"
-
-  # Redis Commander (opcional - interface web para Redis)
-  afiliados_vps_redis_commander:
-    image: rediscommander/redis-commander:latest
-    container_name: afiliados_vps_redis_commander
-    restart: unless-stopped
+      retries: 5
     networks:
-      - afiliados_vps_network
-      - portainer_default
-    environment:
-      - REDIS_HOSTS=afiliados:afiliados_vps_redis:6379:0:${REDIS_PASSWORD}
-      - HTTP_USER=admin
-      - HTTP_PASSWORD=${REDIS_COMMANDER_PASSWORD:-admin123}
+      - vps-network
+
+  # Traefik Reverse Proxy (opcional - se não tiver)
+  traefik:
+    image: traefik:v2.10
+    container_name: traefik
+    restart: unless-stopped
+    command:
+      - "--api.dashboard=true"
+      - "--providers.docker=true"
+      - "--providers.docker.exposedbydefault=false"
+      - "--entrypoints.web.address=:80"
+      - "--entrypoints.websecure.address=:443"
+      - "--certificatesresolvers.myresolver.acme.tlschallenge=true"
+      - "--certificatesresolvers.myresolver.acme.email=seu-email@dominio.com"
+      - "--certificatesresolvers.myresolver.acme.storage=/letsencrypt/acme.json"
+    ports:
+      - "80:80"
+      - "443:443"
+      - "8080:8080"
+    volumes:
+      - "/var/run/docker.sock:/var/run/docker.sock:ro"
+      - "traefik-letsencrypt:/letsencrypt"
+    networks:
+      - vps-network
     labels:
       - "traefik.enable=true"
-      - "traefik.http.routers.afiliados-redis.rule=Host(`redis.afiliados.sxconnect.com.br`)"
-      - "traefik.http.routers.afiliados-redis.entrypoints=websecure"
-      - "traefik.http.routers.afiliados-redis.tls=true"
-      - "traefik.http.routers.afiliados-redis.tls.certresolver=leresolver"
-      - "traefik.http.services.afiliados-redis.loadbalancer.server.port=8081"
-      - "traefik.docker.network=portainer_default"
-      # Basic Auth
-      - "traefik.http.routers.afiliados-redis.middlewares=afiliados-redis-auth"
-      - "traefik.http.middlewares.afiliados-redis-auth.basicauth.users=${REDIS_COMMANDER_HTPASSWD}"
-    depends_on:
-      afiliados_vps_redis:
-        condition: service_healthy
-    logging:
-      driver: json-file
-      options:
-        max-size: "5m"
-        max-file: "2"
-
-volumes:
-  afiliados_vps_postgres_data:
-    name: afiliados_vps_postgres_data
-    driver: local
-  afiliados_vps_redis_data:
-    name: afiliados_vps_redis_data
-    driver: local
+      - "traefik.http.routers.dashboard.rule=Host(`traefik.seu-dominio.com`)"
+      - "traefik.http.routers.dashboard.entrypoints=websecure"
+      - "traefik.http.routers.dashboard.tls.certresolver=myresolver"
+      - "traefik.http.routers.dashboard.service=api@internal"
 
 networks:
-  afiliados_vps_network:
-    name: afiliados_vps_network
+  vps-network:
     driver: bridge
-  portainer_default:
-    external: true
+
+volumes:
+  postgres-data:
+    driver: local
+  redis-data:
+    driver: local
+  traefik-letsencrypt:
+    driver: local
+
