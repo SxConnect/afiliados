@@ -4,6 +4,28 @@ version: '3.8'
 # Arquitetura otimizada para 10K usuários
 
 services:
+  # Admin Panel - Next.js
+  admin-panel:
+    image: ghcr.io/sxconnect/afiliados-admin-panel:1.0.0
+    container_name: admin-panel
+    restart: unless-stopped
+    ports:
+      - "3001:3001"
+    environment:
+      NODE_ENV: production
+      PORT: 3001
+      NEXT_PUBLIC_API_URL: http://vps:3000
+    depends_on:
+      - vps
+    networks:
+      - vps-network
+    labels:
+      - "traefik.enable=true"
+      - "traefik.http.routers.admin.rule=Host(`admin.seu-dominio.com`)"
+      - "traefik.http.routers.admin.entrypoints=websecure"
+      - "traefik.http.routers.admin.tls.certresolver=myresolver"
+      - "traefik.http.services.admin.loadbalancer.server.port=3001"
+
   # VPS License Validation Server
   vps:
     image: ghcr.io/sxconnect/afiliados-vps:2.0.0
